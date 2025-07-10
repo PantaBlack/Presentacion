@@ -78,4 +78,23 @@ public class Inventario {
         }
         return agotados;
     }
+    
+    public void registrarVenta(String codigo, int cantidadVendida) {
+        Producto p = buscarPorCodigo(codigo);
+        if (p != null && p.cantidad >= cantidadVendida) {
+            p.cantidad -= cantidadVendida;
+            p.vendidos += cantidadVendida;
+        }
+    }
+
+    public ArrayList<Producto> getVendidos() {
+        ArrayList<Producto> vendidos = new ArrayList<>();
+        for (Producto p : productos) {
+            if (p.vendidos > 0) {
+                vendidos.add(p);
+            }
+        }
+        return vendidos;
+    }
+
 }

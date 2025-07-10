@@ -29,19 +29,19 @@ public class MenuPrincipal extends JFrame {
     	setBackground(SystemColor.textText);
         setTitle("Sistema de Inventario");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setBounds(100, 100, 800, 500);
+        setBounds(100, 100, 1235, 550);
         contentPane = new JPanel();
         contentPane.setBackground(SystemColor.activeCaption);
         contentPane.setBorder(new EmptyBorder(10, 10, 10, 10));
         setContentPane(contentPane);
         contentPane.setLayout(new BorderLayout(10, 10));
-
         inventario = new Inventario();
 
         String[] columnNames = {"Nombre", "Código", "Precio", "Cantidad", "Categoría"};
         tableModel = new DefaultTableModel(columnNames, 0);
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setPreferredSize(new Dimension(600, 200));
         contentPane.add(scrollPane, BorderLayout.CENTER);
 
         JPanel panelBotones = new JPanel();
@@ -69,6 +69,12 @@ public class MenuPrincipal extends JFrame {
         btnAgotados.setBackground(SystemColor.info);
         JButton btnSalir = new JButton("Salir");
         btnSalir.setBackground(SystemColor.info);
+        JButton btnEditar = new JButton("Editar producto");
+        btnEditar.setBackground(SystemColor.info);
+        JButton btnVender = new JButton("Vender producto");
+        btnVender.setBackground(SystemColor.info);
+        JButton btnReporteVentas = new JButton("Reporte de ventas");
+        btnReporteVentas.setBackground(SystemColor.info);
 
         panelBotones.add(btnAgregar);
         panelBotones.add(btnMostrar);
@@ -80,6 +86,9 @@ public class MenuPrincipal extends JFrame {
         panelBotones.add(btnOrdenar);
         panelBotones.add(btnAgotados);
         panelBotones.add(btnSalir);
+        panelBotones.add(btnEditar);
+        panelBotones.add(btnVender);
+        panelBotones.add(btnReporteVentas);
 
         btnAgregar.addActionListener(e -> agregarProducto());
         btnMostrar.addActionListener(e -> mostrarInventario());
@@ -91,6 +100,9 @@ public class MenuPrincipal extends JFrame {
         btnOrdenar.addActionListener(e -> ordenarPorPrecio());
         btnAgotados.addActionListener(e -> reporteAgotados());
         btnSalir.addActionListener(e -> System.exit(0));
+        btnEditar.addActionListener(e -> editarProducto());
+        btnVender.addActionListener(e -> venderProducto());
+        btnReporteVentas.addActionListener(e -> reporteVentas());
     }
 
 
@@ -250,4 +262,98 @@ public class MenuPrincipal extends JFrame {
             tableModel.addRow(new Object[]{p.nombre, p.codigo, p.precio, p.cantidad, p.categoria});
         }
     }
+    
+    private void editarProducto() {
+        String codigo = JOptionPane.showInputDialog(this, "Ingrese código del producto:");
+        if (codigo != null && !codigo.trim().isEmpty()) {
+            Producto p = inventario.buscarPorCodigo(codigo.trim());
+            if (p == null) {
+                JOptionPane.showMessageDialog(this, "Producto no encontrado.");
+                return;
+            }
+
+            JTextField nombreField = new JTextField(p.nombre);
+            JTextField precioField = new JTextField(String.valueOf(p.precio));
+
+            JPanel panel = new JPanel(new GridLayout(0, 1));
+            panel.add(new JLabel("Nuevo nombre:"));
+            panel.add(nombreField);
+            panel.add(new JLabel("Nuevo precio:"));
+            panel.add(precioField);
+
+            int result = JOptionPane.showConfirmDialog(this, panel, "Editar Producto", JOptionPane.OK_CANCEL_OPTION);
+            if (result == JOptionPane.OK_OPTION) {
+                try {
+                    String nuevoNombre = nombreField.getText().trim();
+                    double nuevoPrecio = Double.parseDouble(precioField.getText().trim());
+
+                    p.nombre = nuevoNombre;
+                    p.precio = nuevoPrecio;
+                    p.categoria = nuevoPrecio < 50 ? "Económico" : (nuevoPrecio <= 200 ? "Estándar" : "Premium");
+
+                    mostrarInventario();
+                    JOptionPane.showMessageDialog(this, "Producto actualizado.");
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Precio inválido.");
+                }
+            }
+        }
+    }
+
+    private void venderProducto() {
+        String codigo = JOptionPane.showInputDialog(this, "Ingrese código del producto a vender:");
+        if (codigo != null && !codigo.trim().isEmpty()) {
+            Producto p = inventario.buscarPorCodigo(codigo.trim());
+            if (p == null) {
+                JOptionPane.showMessageDialog(this, "Producto no encontrado.");
+                return;
+            }
+
+            String cantidadStr = JOptionPane.showInputDialog(this, "Ingrese cantidad a vender:");
+            try {
+                int cantidad = Integer.parseInt(cantidadStr.trim());
+                if (cantidad <= 0 || cantidad > p.cantidad) {
+                    JOptionPane.showMessageDialog(this, "Cantidad inválida o insuficiente.");
+                    return;
+                }
+
+                inventario.registrarVenta(codigo.trim(), cantidad);
+                mostrarInventario();
+                JOptionPane.showMessageDialog(this, "Venta realizada.");
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Cantidad inválida.");
+            }
+        }
+    }
+
+    private void reporteVentas() {
+        ArrayList<Producto> vendidos = inventario.getVendidos();
+        if (vendidos.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No hay ventas registradas.");
+        } else {
+            DefaultTableModel ventasModel = new DefaultTableModel(new String[]{"Nombre", "Código", "Vendidos", "Total (S/.)"}, 0);
+            double totalGeneral = 0;
+
+            for (Producto p : vendidos) {
+                double totalProducto = p.vendidos * p.precio;
+                totalGeneral += totalProducto;
+                ventasModel.addRow(new Object[]{p.nombre, p.codigo, p.vendidos, String.format("S/ %.2f", totalProducto)});
+            }
+
+            JTable tablaVentas = new JTable(ventasModel);
+            JScrollPane scrollPane = new JScrollPane(tablaVentas);
+
+            JPanel panel = new JPanel(new BorderLayout());
+            panel.add(scrollPane, BorderLayout.CENTER);
+
+            JLabel totalLabel = new JLabel("Total general de ventas: S/ " + String.format("%.2f", totalGeneral));
+            totalLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+            totalLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            panel.add(totalLabel, BorderLayout.SOUTH);
+
+            JOptionPane.showMessageDialog(this, panel, "Reporte de Ventas", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
+
 }
