@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{mitiempo.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <th:block th:switch="${activeRole}">
+        <th:block th:case="'TEACHER'">
+            <aside th:replace="~{layout/fragments :: teacherSidebar('tiempo')}"></aside>
+        </th:block>
+        <th:block th:case="'STUDENT'">
+            <aside th:replace="~{layout/fragments :: studentSidebar('tiempo')}"></aside>
+        </th:block>
+        <th:block th:case="'PRACTICANTE'">
+            <aside th:replace="~{layout/fragments :: practicanteSidebar('tiempo')}"></aside>
+        </th:block>
+    </th:block>
+
+    <main class="content">
+        <header class="page-head">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('timer','ico-sm')}"></svg>
+                    <span th:text="#{mitiempo.eyebrow}">Control de horas</span>
+                </span>
+                <h1 th:text="#{mitiempo.title}">Mi tiempo</h1>
+                <p th:text="#{mitiempo.subtitle}">Ficha tu turno y redacta tu reporte semanal.</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b th:text="${#numbers.formatDecimal(minutosSemana / 60.0, 1, 1)}">0</b>
+                    <span th:text="#{mitiempo.semana.total}">Total cronometrado</span>
+                </div>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <div class="avail-empty-note" th:if="${!historial.isEmpty() and historial[0].cierreForzado}">
+            <svg th:replace="~{layout/fragments :: icon('bell','ico-lg')}"></svg>
+            <div>
+                <strong th:text="#{mitiempo.turno.finalizado}">Finalizado</strong>
+                <p th:text="#{mitiempo.forzado.aviso}">Tu ultimo turno se cerro automaticamente.</p>
+            </div>
+        </div>
+
+        <!-- ===================== Reloj de turno ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('timer','')}"></svg>
+                    <span th:text="#{mitiempo.turno.title}">Tu turno</span>
+                </h3>
+                <span class="chip" id="chipEstadoTurno"
+                      th:classappend="${turnoActivo == null} ? '' : (${turnoActivo.estado.name() == 'EN_REFRIGERIO'} ? 'chip--warn' : 'chip--success')"
+                      th:text="${turnoActivo == null} ? '' : #{'estadoTurno.' + ${turnoActivo.estado.name()}}">Estado</span>
+            </div>
+            <div class="panel-body clock-widget">
+                <div class="clock-display">
+                    <span class="clock-time" id="clockTime" th:text="${turnoActivo != null} ? ${turnoActivo.minutosTrabajadosFormateado} : '0h 0m'">0h 0m</span>
+                    <p class="clock-hint" id="clockHint" th:if="${turnoActivo == null}" th:text="#{mitiempo.turno.none}">No tienes un turno activo.</p>
+                    <p class="clock-hint" th:if="${turnoActivo != null and turnoActivo.estado.name() == 'EN_REFRIGERIO'}" th:text="#{mitiempo.almuerzo.aviso}">Aviso de almuerzo</p>
+                </div>
+                <div class="clock-actions">
+                    <form th:if="${turnoActivo == null}" method="post" th:action="@{/mi-tiempo/iniciar}">
+                        <button type="submit" class="btn btn-primary" th:text="#{mitiempo.btn.iniciar}">Iniciar turno</button>
+                    </form>
+                    <form th:if="${turnoActivo != null and turnoActivo.estado.name() == 'EN_REFRIGERIO'}" method="post" th:action="@{/mi-tiempo/reanudar}">
+                        <button type="submit" class="btn btn-primary" th:text="#{mitiempo.btn.reanudar}">Reanudar turno</button>
+                    </form>
+                    <form th:if="${turnoActivo != null}" method="post" th:action="@{/mi-tiempo/finalizar}">
+                        <button type="submit" class="btn btn-light" th:text="#{mitiempo.btn.finalizar}">Finalizar turno</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Horas de la semana ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('chart','')}"></svg>
+                    <span th:text="#{mitiempo.semana.title}">Horas de esta semana</span>
+                </h3>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+                <table class="data">
+                    <thead>
+                    <tr>
+                        <th th:each="dia : ${minutosPorDia.keySet()}" th:text="#{'day.' + ${dia}}">Dia</th>
+                        <th th:text="#{mitiempo.semana.total}">Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td th:each="entry : ${minutosPorDia}" th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(entry.value)}">0h 0m</td>
+                        <td><strong th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(minutosSemana)}">0h 0m</strong></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===================== Tus ultimos turnos ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3 th:text="#{mitiempo.historial.title}">Tus ultimos turnos</h3>
+            </div>
+            <div class="panel-body panel-body--flush" style="overflow-x:auto">
+                <table class="data">
+                    <thead>
+                    <tr>
+                        <th th:text="#{mitiempo.historial.col.fecha}">Fecha</th>
+                        <th th:text="#{mitiempo.historial.col.inicio}">Entrada</th>
+                        <th th:text="#{mitiempo.historial.col.fin}">Salida</th>
+                        <th th:text="#{mitiempo.historial.col.horas}">Horas</th>
+                        <th th:text="#{common.status}">Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${historial.isEmpty()}">
+                        <td colspan="5" style="text-align:center;padding:30px" th:text="#{mitiempo.historial.empty}">Sin turnos</td>
+                    </tr>
+                    <tr th:each="t : ${historial}">
+                        <td th:text="${#temporals.format(t.fecha, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td th:text="${#temporals.format(t.horaInicio, 'HH:mm')}">08:00</td>
+                        <td th:text="${t.horaFin != null} ? ${#temporals.format(t.horaFin, 'HH:mm')} : '-'">-</td>
+                        <td th:text="${t.minutosTrabajadosFormateado}">0h 0m</td>
+                        <td>
+                            <span class="chip" th:text="#{'estadoTurno.' + ${t.estado.name()}}">Estado</span>
+                            <span class="chip chip--warn" th:if="${t.cierreForzado}" th:text="#{mitiempo.historial.forzado}">Cierre forzado</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===================== Reporte semanal ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3 th:text="#{mitiempo.reporte.title}">Reporte semanal</h3>
+                <span class="chip" th:text="#{'estadoReporte.' + ${reporte.estado.name()}}">Estado</span>
+            </div>
+            <div class="panel-body">
+                <p class="text-muted" th:text="#{mitiempo.reporte.sub}">Desglosa que hiciste cada dia.</p>
+                <p class="text-muted" style="margin-top:-8px">
+                    <strong th:text="#{mitiempo.reporte.plazo}">Plazo de envio</strong>:
+                    <span th:text="${#temporals.format(plazoEnvio, 'EEEE dd/MM')} + ' - 12:00 pm'">sabado - 12:00 pm</span>
+                </p>
+
+                <div th:if="${reporte.comentarioAdmin != null and not #strings.isEmpty(reporte.comentarioAdmin)}" class="avail-empty-note">
+                    <svg th:replace="~{layout/fragments :: icon('bell','ico-lg')}"></svg>
+                    <div>
+                        <strong th:text="#{mitiempo.reporte.comentarioAdmin}">Comentario del administrador</strong>
+                        <p th:text="${reporte.comentarioAdmin}">Comentario</p>
+                    </div>
+                </div>
+
+                <!-- Matriz de solo lectura: las horas que el sistema ya fichó esta semana,
+                     con el mismo lenguaje visual que "Mi disponibilidad" -->
+                <div style="overflow-x:auto">
+                    <table class="avail-grid avail-grid--readonly">
+                        <thead>
+                        <tr>
+                            <th class="avail-hour-head"></th>
+                            <th th:each="dia : ${minutosPorDia.keySet()}" th:text="#{'day.' + ${dia}}">Dia</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="hora : ${horas}">
+                            <th class="avail-hour-head" th:text="${hora}">08:00</th>
+                            <td th:each="dia : ${minutosPorDia.keySet()}">
+                                <span class="avail-cell"
+                                      th:classappend="${horasTrabajadasPorDia.get(dia).contains(hora)} ? 'avail-cell--presencial' : 'avail-cell--libre'"
+                                      th:title="${horasTrabajadasPorDia.get(dia).contains(hora)} ? #{mitiempo.matriz.trabajado} : ''"></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="avail-hint" th:text="#{mitiempo.matriz.hint}">Esto ya lo ficho el sistema por ti.</p>
+
+                <p th:if="${!reporte.editable}" class="text-muted" th:text="#{mitiempo.reporte.bloqueado}">Bloqueado</p>
+
+                <form th:if="${reporte.editable}" method="post" th:action="@{/mi-tiempo/reportes/guardar}" id="formReporte">
+                    <input type="hidden" name="semanaInicio" th:value="${semanaInicio}"/>
+
+                    <p class="text-muted mt-2" style="margin-bottom:4px" th:text="#{mitiempo.reporte.chips.hint}">Toca lo que hiciste cada dia.</p>
+                    <div class="grid grid-2 gap">
+                        <div class="form-group" th:each="dia : ${minutosPorDia.keySet()}">
+                            <label th:text="#{'day.' + ${dia}}">Dia</label>
+                            <div class="avail-legend chip-picker" th:attr="data-dia=${dia}">
+                                <button type="button" class="avail-legend-item" th:each="c : ${chipKeys}"
+                                        th:text="#{'mitiempo.reporte.chip.' + ${c}}">Chip</button>
+                            </div>
+                            <input type="text" class="form-control mt-1 chip-extra" th:attr="data-dia=${dia}"
+                                   th:placeholder="#{mitiempo.reporte.day.extra}"/>
+                            <input type="hidden" th:name="${'notas' + #strings.capitalize(#strings.toLowerCase(dia))}"
+                                   th:attr="data-dia-hidden=${dia}"
+                                   th:value="${dia == 'LUNES'} ? ${reporte.notasLunes} : (${dia == 'MARTES'} ? ${reporte.notasMartes} : (${dia == 'MIERCOLES'} ? ${reporte.notasMiercoles} : (${dia == 'JUEVES'} ? ${reporte.notasJueves} : ${reporte.notasViernes})))"/>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 panel" style="box-shadow:none;border-style:dashed">
+                        <div class="panel-body">
+                            <h4 style="margin:0 0 6px" th:text="#{mitiempo.reporte.ajuste.title}">Solicitud de ajuste</h4>
+                            <p class="text-muted" style="margin:0 0 10px" th:text="#{mitiempo.reporte.ajuste.hint}">Hint</p>
+                            <div class="grid grid-2 gap">
+                                <div class="form-group">
+                                    <label th:text="#{mitiempo.reporte.ajuste.minutos}">Minutos a ajustar</label>
+                                    <input type="number" min="0" class="form-control" name="minutosAjusteSolicitado" th:value="${reporte.minutosAjusteSolicitado}"/>
+                                </div>
+                                <div class="form-group">
+                                    <label th:text="#{mitiempo.reporte.ajuste.comentario}">Explica que paso</label>
+                                    <input type="text" class="form-control" name="comentarioAjuste" th:value="${reporte.comentarioAjuste}"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap wrap mt-2" style="align-items:center">
+                        <button type="submit" class="btn btn-light" th:text="#{mitiempo.reporte.btn.guardar}">Guardar borrador</button>
+                        <button type="submit" class="btn btn-primary js-confirm" th:if="${reporte.id != null and !plazoVencido}"
+                                th:formaction="@{'/mi-tiempo/reportes/' + ${reporte.id} + '/enviar'}"
+                                th:attr="data-confirm=#{mitiempo.reporte.enviar.confirm}"
+                                th:text="#{mitiempo.reporte.btn.enviar}">Enviar reporte</button>
+                        <span class="chip chip--warn" th:if="${plazoVencido}" th:text="#{mitiempo.reporte.plazoVencido}">Plazo vencido</span>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===================== Reportes anteriores ===================== -->
+        <section class="panel" th:if="${!reportesAnteriores.isEmpty()}">
+            <div class="panel-head">
+                <h3 th:text="#{mitiempo.anteriores.title}">Reportes anteriores</h3>
+            </div>
+            <div class="panel-body panel-body--flush" style="overflow-x:auto">
+                <table class="data">
+                    <thead>
+                    <tr>
+                        <th th:text="#{mitiempo.anteriores.col.semana}">Semana</th>
+                        <th th:text="#{mitiempo.anteriores.col.estado}">Estado</th>
+                        <th th:text="#{mitiempo.anteriores.col.horasFinales}">Horas aprobadas</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${reportesAnteriores}">
+                        <td th:text="${#temporals.format(r.semanaInicio, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td><span class="chip" th:text="#{'estadoReporte.' + ${r.estado.name()}}">Estado</span></td>
+                        <td th:text="${r.minutosFinalesAprobados != null} ? ${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(r.minutosFinalesAprobados)} : '-'">-</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script th:inline="javascript">
+    (function () {
+        const clockTime = document.getElementById('clockTime');
+        if (!clockTime) return;
+
+        // Estado con el que se renderizo la pagina: si el servidor lo cambia por su
+        // cuenta (el corte de almuerzo de la 1pm, o un auto-checkout) mientras la
+        // pestana sigue abierta, recargamos para mostrar los botones correctos en
+        // vez de duplicar toda esa logica de estados aqui en JS.
+        const estadoInicial = /*[[${turnoActivo != null} ? ${turnoActivo.estado.name()} : 'NINGUNO']]*/ 'NINGUNO';
+
+        async function refrescar() {
+            try {
+                const resp = await fetch(/*[[@{/mi-tiempo/estado}]]*/ '/mi-tiempo/estado');
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const estadoActual = data.activo ? data.estado : 'NINGUNO';
+                if (estadoActual !== estadoInicial) {
+                    location.reload();
+                    return;
+                }
+                if (data.activo) {
+                    const h = Math.floor(data.minutosTrabajados / 60);
+                    const m = data.minutosTrabajados % 60;
+                    clockTime.textContent = h + 'h ' + m + 'm';
+                }
+            } catch (e) {
+                // Sin conexion momentanea: se reintenta en el proximo ciclo, sin romper la vista.
+            }
+        }
+
+        setInterval(refrescar, 30000);
+
+        document.querySelectorAll('.js-confirm').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                const mensaje = btn.dataset.confirm;
+                if (mensaje && !confirm(mensaje)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Selector de tareas por dia: tocar los chips arma el texto solo, sin
+        // tener que escribir un parrafo. El campo "extra" es opcional, por si
+        // algo no entra en los chips (o para no perder texto que ya existia).
+        document.querySelectorAll('.chip-picker').forEach((picker) => {
+            const dia = picker.dataset.dia;
+            const oculto = document.querySelector('input[type=hidden][data-dia-hidden="' + dia + '"]');
+            const extra = document.querySelector('.chip-extra[data-dia="' + dia + '"]');
+            if (!oculto || !extra) return;
+
+            function actualizar() {
+                const activos = Array.from(picker.querySelectorAll('.avail-legend-item.active'))
+                        .map((b) => b.textContent.trim());
+                const extraVal = extra.value.trim();
+                oculto.value = extraVal ? [...activos, extraVal].join(', ') : activos.join(', ');
+            }
+
+            // Lo que ya estuviera guardado (de un borrador anterior) se muestra tal
+            // cual en el campo de texto libre: no se intenta adivinar que chips
+            // corresponden, asi no se pierde nada de lo que ya se habia escrito.
+            if (oculto.value) {
+                extra.value = oculto.value;
+            }
+
+            picker.querySelectorAll('.avail-legend-item').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    btn.classList.toggle('active');
+                    actualizar();
+                });
+            });
+            extra.addEventListener('input', actualizar);
+        });
+    })();
+</script>
+</body>
+</html>

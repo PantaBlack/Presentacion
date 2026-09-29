@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(${titulo})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('disponibilidad')}"></aside>
+
+    <main class="content content--admin">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('user','ico-sm')}"></svg>
+                    <span th:text="#{'role.' + ${usuario.role}}">Rol</span>
+                </span>
+                <h1 th:text="${usuario.fullName}">Nombre</h1>
+                <p th:text="#{admin.availability.detail.subtitle}">Cuadricula de disponibilidad semanal (solo lectura)</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b th:text="${totalPresencial}">0</b>
+                    <span th:text="#{admin.availability.detail.stat.presencial}">Horas presenciales</span>
+                </div>
+                <div class="head-stat">
+                    <b th:text="${totalVirtual}">0</b>
+                    <span th:text="#{admin.availability.detail.stat.virtual}">Horas virtuales</span>
+                </div>
+                <a class="btn btn-light" th:href="@{/admin/disponibilidad}">
+                    <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}" style="transform:rotate(180deg)"></svg>
+                    <span th:text="#{admin.availability.back}">Volver al directorio</span>
+                </a>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <div class="avail-empty-note" th:if="${sinDisponibilidad}">
+            <svg th:replace="~{layout/fragments :: icon('clock','ico-lg')}"></svg>
+            <div>
+                <strong th:text="#{admin.availability.detail.empty.title}">Sin disponibilidad registrada</strong>
+                <p th:text="#{admin.availability.detail.empty.body}">Esta persona aun no ha marcado horas presenciales ni virtuales en su cuadricula.</p>
+            </div>
+        </div>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+                    <span th:text="#{admin.availability.detail.grid}">Su semana</span>
+                </h3>
+                <div class="avail-legend avail-legend--static">
+                    <span class="avail-legend-item">
+                        <span class="avail-swatch avail-swatch--presencial"></span>
+                        <span th:text="#{avail.presencial}">Presencial</span>
+                    </span>
+                    <span class="avail-legend-item">
+                        <span class="avail-swatch avail-swatch--virtual"></span>
+                        <span th:text="#{avail.virtual}">Virtual</span>
+                    </span>
+                    <span class="avail-legend-item">
+                        <span class="avail-swatch avail-swatch--almuerzo"></span>
+                        <span th:text="#{avail.almuerzo}">Almuerzo</span>
+                    </span>
+                </div>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+                <table class="avail-grid avail-grid--readonly">
+                    <thead>
+                    <tr>
+                        <th class="avail-hour-head"></th>
+                        <th th:each="dia : ${dias}" th:text="#{'day.' + ${dia}}">Dia</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="horaEntry : ${mapaHoras}">
+                        <th class="avail-hour-head" th:text="${horaEntry.key}">08:00</th>
+                        <td th:each="dia : ${dias}" th:with="modalidad=${horaEntry.value.get(dia)}">
+                            <span class="avail-cell"
+                                  th:classappend="'avail-cell--' + ${(modalidad == null or modalidad == '') ? 'libre' : #strings.toLowerCase(modalidad)}
+                                                  + (${modalidad == 'ALMUERZO'} ? ' avail-cell--locked' : '')"
+                                  th:title="${modalidad == 'PRESENCIAL'} ? #{avail.presencial} : (${modalidad == 'VIRTUAL'} ? #{avail.virtual} : (${modalidad == 'ALMUERZO'} ? #{avail.almuerzo} : (${modalidad == 'OCUPADO'} ? #{avail.ocupado} : #{avail.libre})))">
+                                <span class="avail-cell-icon"
+                                      th:text="${modalidad == 'PRESENCIAL'} ? '&#127979;' : (${modalidad == 'VIRTUAL'} ? '&#128187;' : (${modalidad == 'ALMUERZO'} ? '&#127860;' : (${modalidad == 'OCUPADO'} ? '&#128683;' : '')))"></span>
+                                <span class="avail-cell-label" th:if="${modalidad != null and modalidad != ''}"
+                                      th:text="${modalidad == 'PRESENCIAL'} ? #{avail.presencial} : (${modalidad == 'VIRTUAL'} ? #{avail.virtual} : (${modalidad == 'ALMUERZO'} ? #{avail.almuerzo} : #{avail.ocupado}))"></span>
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

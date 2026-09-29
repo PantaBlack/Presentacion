@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Alumnos inscritos')}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: teacherSidebar('schedules')}"></aside>
+    <main class="content content--teacher">
+        <h1 class="page-title" th:text="#{teacher.students.title}">Alumnos inscritos</h1>
+        <p class="page-subtitle">
+            <span th:text="${schedule.subject}">Materia</span> &middot;
+            <span th:text="#{'day.' + ${schedule.dayOfWeek}}">Dia</span>
+            <span th:text="${schedule.startTime} + ' - ' + ${schedule.endTime}">Hora</span>
+        </p>
+        <a class="btn btn-outline btn-sm mb-3" th:href="@{/teacher/schedules}" th:text="#{common.back}">Volver</a>
+
+        <form th:if="${!enrollments.isEmpty()}" th:action="@{'/teacher/schedules/' + ${schedule.id} + '/asistencia'}" method="post">
+            <input type="hidden" name="fecha" th:value="${hoy}"/>
+            <p class="text-muted" style="font-size:.85rem"
+               th:text="#{asistencia.fecha} + ': ' + ${hoy}">Asistencia de hoy</p>
+            <table class="data">
+                <thead><tr>
+                    <th th:text="#{common.name}">Nombre</th>
+                    <th th:text="#{register.email}">Correo</th>
+                    <th th:text="#{asistencia.presente}">Presente hoy</th>
+                    <th th:text="#{asistencia.notas}">Notas de progreso</th>
+                </tr></thead>
+                <tbody>
+                <tr th:each="e : ${enrollments}">
+                    <td th:text="${e.student.fullName}">Alumno</td>
+                    <td th:text="${e.student.email}">correo</td>
+                    <td style="text-align:center">
+                        <input type="checkbox" th:name="'presente_' + ${e.id}"
+                               th:checked="${asistenciaHoy.get(e.student.id)}"/>
+                    </td>
+                    <td>
+                        <textarea th:name="'notas_' + ${e.id}" class="form-control" rows="2"
+                                  style="font-size:.8rem;min-width:200px" th:text="${e.notasProgreso}"></textarea>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <button class="btn btn-primary mt-2" th:text="#{asistencia.guardar}">Guardar asistencia y notas</button>
+        </form>
+        <p class="text-muted" th:if="${enrollments.isEmpty()}" th:text="#{common.none}">Sin inscritos</p>
+    </main>
+</div>
+</body>
+</html>

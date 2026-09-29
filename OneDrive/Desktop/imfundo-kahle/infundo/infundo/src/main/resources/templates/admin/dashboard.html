@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.dashboard.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('dashboard')}"></aside>
+
+    <main class="content content--admin"
+          th:with="propTotal=${pendingProposals + approvedProposals + rejectedProposals},
+                   occupancy=${seatsTotal == 0 ? 0 : (seatsTaken * 100 / seatsTotal)}">
+
+        <!-- ===================== Cabecera ===================== -->
+        <header class="page-head page-head--admin"
+                data-bg-ck="banner-admin" data-bg-var="--head-bg" data-bg-class="page-head--fondo-custom"
+                th:with="bannerUrl=${imgV.containsKey('banner-admin')} ? @{/contenido/imagen/banner-admin(v=${imgV.get('banner-admin')})} : null"
+                th:classappend="${bannerUrl != null} ? 'page-head--fondo-custom' : ''"
+                th:style="${bannerUrl != null} ? ('--head-bg:url(' + ${bannerUrl} + ')') : null">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('chart','ico-sm')}"></svg>
+                    <span data-ck="dash.eyebrow.admin" th:text="#{dash.eyebrow.admin}">Panel de control</span>
+                </span>
+                <h1 data-ck="admin.dashboard.title" th:text="#{admin.dashboard.title}">Panel de administracion</h1>
+                <p data-ck="admin.dashboard.subtitle" th:text="#{admin.dashboard.subtitle}">Resumen general del centro</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b th:text="${totalUsers}">0</b>
+                    <span th:text="#{head.totalUsers}">Usuarios registrados</span>
+                </div>
+                <div class="head-stat">
+                    <b th:text="${occupancy} + '%'">0%</b>
+                    <span th:text="#{head.occupancy}">Ocupacion de clases</span>
+                </div>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Indicadores ===================== -->
+        <section class="kpi-grid">
+            <a class="kpi" th:href="@{/admin/users}">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--info">
+                        <svg th:replace="~{layout/fragments :: icon('users','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag" th:text="#{kpi.tag.team}">Equipo</span>
+                </div>
+                <div class="kpi-value" th:text="${totalTeachers}">0</div>
+                <div class="kpi-label" th:text="#{stats.teachers}">Profesores</div>
+                <div class="kpi-foot">
+                    <span th:text="#{stats.practicantes} + ': ' + ${totalPracticantes}">Practicantes: 0</span>
+                </div>
+            </a>
+
+            <a class="kpi" th:href="@{/admin/users}">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--accent">
+                        <svg th:replace="~{layout/fragments :: icon('graduation','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag" th:text="#{kpi.tag.community}">Comunidad</span>
+                </div>
+                <div class="kpi-value" th:text="${totalStudents}">0</div>
+                <div class="kpi-label" th:text="#{stats.students}">Alumnos</div>
+                <div class="kpi-foot">
+                    <span th:text="#{kpi.seats} + ': ' + ${seatsTaken} + ' / ' + ${seatsTotal}">Plazas: 0 / 0</span>
+                </div>
+            </a>
+
+            <a class="kpi" th:href="@{/admin/proposals}">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--warn">
+                        <svg th:replace="~{layout/fragments :: icon('file','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag kpi-tag--alert" th:if="${pendingProposals > 0}"
+                          th:text="#{kpi.tag.action}">Requiere accion</span>
+                    <span class="kpi-tag kpi-tag--up" th:if="${pendingProposals == 0}"
+                          th:text="#{kpi.tag.clear}">Al dia</span>
+                </div>
+                <div class="kpi-value" th:text="${pendingProposals}">0</div>
+                <div class="kpi-label" th:text="#{stat.pending}">Propuestas pendientes</div>
+                <div class="kpi-foot">
+                    <span th:text="#{common.total} + ': ' + ${propTotal}">Total: 0</span>
+                </div>
+            </a>
+
+            <a class="kpi" th:href="@{/admin/materials}">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--violet">
+                        <svg th:replace="~{layout/fragments :: icon('book','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag" th:text="#{kpi.tag.library}">Biblioteca</span>
+                </div>
+                <div class="kpi-value" th:text="${totalMaterials}">0</div>
+                <div class="kpi-label" th:text="#{stats.materials}">Materiales</div>
+                <div class="kpi-foot">
+                    <span th:text="#{stat.schedules} + ': ' + ${totalSchedules}">Horarios activos: 0</span>
+                </div>
+            </a>
+        </section>
+
+        <!-- ============ Grafico de propuestas + salud del centro ============ -->
+        <section class="panel-grid">
+
+            <!-- Donut de propuestas (CSS puro, sin librerias externas) -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('chart','')}"></svg>
+                        <span th:text="#{admin.chart.proposals}">Propuestas por estado</span>
+                    </h3>
+                    <a class="panel-link" th:href="@{/admin/proposals}">
+                        <span th:text="#{common.view}">Ver</span>
+                        <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+                    </a>
+                </div>
+                <div class="panel-body">
+                    <div class="donut-wrap"
+                         th:with="degP=${propTotal == 0 ? 0 : (pendingProposals * 360 / propTotal)},
+                                  degA=${propTotal == 0 ? 0 : (approvedProposals * 360 / propTotal)}">
+                        <div class="donut" th:classappend="${propTotal == 0} ? 'donut--empty'"
+                             th:style="'--a:' + ${degP} + 'deg;--b:' + ${degP + degA} + 'deg'">
+                            <div class="donut-center">
+                                <b th:text="${propTotal}">0</b>
+                                <span th:text="#{common.total}">Total</span>
+                            </div>
+                        </div>
+                        <div class="legend">
+                            <div class="legend-item">
+                                <span class="legend-dot legend-dot--pending" style="background:#FDB44B"></span>
+                                <span class="legend-name" th:text="#{pstatus.PENDING}">Pendiente</span>
+                                <b th:text="${pendingProposals}">0</b>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot legend-dot--approved" style="background:#00B894"></span>
+                                <span class="legend-name" th:text="#{pstatus.APPROVED}">Aprobada</span>
+                                <b th:text="${approvedProposals}">0</b>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot legend-dot--rejected" style="background:#E4572E"></span>
+                                <span class="legend-name" th:text="#{pstatus.REJECTED}">Rechazada</span>
+                                <b th:text="${rejectedProposals}">0</b>
+                            </div>
+                            <p class="text-muted" style="font-size:.8rem;margin:6px 0 0"
+                               th:if="${propTotal == 0}" th:text="#{admin.chart.empty}">
+                                Todavia no hay propuestas registradas.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salud del centro: ocupacion y reparto de la comunidad -->
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('target','')}"></svg>
+                        <span th:text="#{admin.health.title}">Salud del centro</span>
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <div class="meter-row">
+                        <div class="meter-head">
+                            <span th:text="#{admin.health.occupancy}">Ocupacion de las clases</span>
+                            <b th:text="${occupancy} + '%'">0%</b>
+                        </div>
+                        <div class="meter meter--accent">
+                            <span th:style="'width:' + ${occupancy} + '%'"></span>
+                        </div>
+                        <small class="text-muted"
+                               th:text="${seatsTaken} + ' / ' + ${seatsTotal} + ' ' + #{kpi.seats}">0 / 0 plazas</small>
+                    </div>
+
+                    <div class="meter-row" th:with="pct=${totalUsers == 0 ? 0 : (totalStudents * 100 / totalUsers)}">
+                        <div class="meter-head">
+                            <span th:text="#{stats.students}">Alumnos</span>
+                            <b th:text="${totalStudents}">0</b>
+                        </div>
+                        <div class="meter"><span th:style="'width:' + ${pct} + '%'"></span></div>
+                    </div>
+
+                    <div class="meter-row" th:with="pct=${totalUsers == 0 ? 0 : (totalTeachers * 100 / totalUsers)}">
+                        <div class="meter-head">
+                            <span th:text="#{stats.teachers}">Profesores</span>
+                            <b th:text="${totalTeachers}">0</b>
+                        </div>
+                        <div class="meter meter--success"><span th:style="'width:' + ${pct} + '%'"></span></div>
+                    </div>
+
+                    <div class="meter-row" th:with="pct=${totalUsers == 0 ? 0 : (totalPracticantes * 100 / totalUsers)}">
+                        <div class="meter-head">
+                            <span th:text="#{stats.practicantes}">Practicantes</span>
+                            <b th:text="${totalPracticantes}">0</b>
+                        </div>
+                        <div class="meter meter--warn"><span th:style="'width:' + ${pct} + '%'"></span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ Propuestas pendientes recientes ============ -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('bell','')}"></svg>
+                    <span th:text="#{admin.proposals.pending.recent}">Propuestas pendientes recientes</span>
+                </h3>
+                <a class="panel-link" th:href="@{/admin/proposals}">
+                    <span th:text="#{admin.menu.proposals}">Propuestas</span>
+                    <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+                </a>
+            </div>
+            <div class="panel-body panel-body--flush" th:if="${!recentProposals.isEmpty()}">
+                <div class="list-row" th:each="p : ${recentProposals}">
+                    <span class="row-mark row-mark--accent" th:text="${p.teacher.initial}">A</span>
+                    <div class="row-main">
+                        <strong th:text="${p.title}">Titulo</strong>
+                        <small th:text="${p.teacher.fullName} + ' &middot; ' + #{'ptype.' + ${p.type}}">Profesor</small>
+                    </div>
+                    <div class="row-side">
+                        <span class="chip chip--warn" th:text="#{pstatus.PENDING}">Pendiente</span>
+                        <a class="btn btn-primary btn-sm" th:href="@{/admin/proposals(status='PENDING')}"
+                           th:text="#{common.view}">Revisar</a>
+                    </div>
+                </div>
+            </div>
+            <th:block th:if="${recentProposals.isEmpty()}">
+                <div th:replace="~{layout/fragments :: empty(#{admin.proposals.empty})}"></div>
+            </th:block>
+        </section>
+
+        <!-- ============ Usuarios recientes + horarios ============ -->
+        <section class="panel-grid--even panel-grid">
+
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('users','')}"></svg>
+                        <span th:text="#{admin.users.recent}">Usuarios recientes</span>
+                    </h3>
+                    <a class="panel-link" th:href="@{/admin/users}">
+                        <span th:text="#{common.view}">Ver</span>
+                        <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+                    </a>
+                </div>
+                <div class="panel-body panel-body--flush" th:if="${!recentUsers.isEmpty()}">
+                    <div class="list-row" th:each="u : ${recentUsers}">
+                        <span class="row-mark" th:classappend="'row-mark--' + ${#strings.toLowerCase(u.role)}" th:text="${u.initial}">A</span>
+                        <div class="row-main">
+                            <strong th:text="${u.fullName}">Nombre</strong>
+                            <small th:text="${u.email}">correo</small>
+                        </div>
+                        <div class="row-side">
+                            <span class="chip" th:classappend="'chip--role-' + ${#strings.toLowerCase(u.role)}"
+                                  th:text="#{'role.' + ${u.role}}">Rol</span>
+                        </div>
+                    </div>
+                </div>
+                <th:block th:if="${recentUsers.isEmpty()}">
+                    <div th:replace="~{layout/fragments :: empty(#{common.none})}"></div>
+                </th:block>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+                        <span th:text="#{admin.schedules.recent}">Horarios programados</span>
+                    </h3>
+                    <a class="panel-link" th:href="@{/admin/schedules}">
+                        <span th:text="#{common.view}">Ver</span>
+                        <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+                    </a>
+                </div>
+                <div class="panel-body panel-body--flush" th:if="${!upcomingSchedules.isEmpty()}">
+                    <div class="list-row" th:each="s : ${upcomingSchedules}"
+                         th:with="taken=${scheduleService.countActiveEnrollments(s)}">
+                        <span class="row-mark">
+                            <svg th:replace="~{layout/fragments :: icon('clock','')}"></svg>
+                        </span>
+                        <div class="row-main">
+                            <strong th:text="${s.subject}">Materia</strong>
+                            <small th:text="#{'day.' + ${s.dayOfWeek}} + ' &middot; ' + ${s.startTime} + ' - ' + ${s.endTime}
+                                             + ' &middot; ' + ${s.teacher.fullName}">Dia y hora</small>
+                        </div>
+                        <div class="row-side">
+                            <span class="chip chip--lang"
+                                  th:classappend="${s.language.name() == 'FRENCH'} ? 'chip--lang-fr' : (${s.language.name() == 'ENGLISH'} ? 'chip--lang-en' : '')"
+                                  th:text="#{'lang.' + ${s.language}}">Idioma</span>
+                            <span class="chip" th:text="${taken} + '/' + ${s.maxStudents}">0/10</span>
+                        </div>
+                    </div>
+                </div>
+                <th:block th:if="${upcomingSchedules.isEmpty()}">
+                    <div th:replace="~{layout/fragments :: empty(#{common.none})}"></div>
+                </th:block>
+            </div>
+        </section>
+
+        <!-- ============ Accesos rapidos ============ -->
+        <h3 style="margin:26px 0 14px;color:var(--primary-dark)" th:text="#{quick.title}">Accesos rapidos</h3>
+        <section class="quick-grid">
+            <a class="quick" th:href="@{/admin/proposals(status='PENDING')}">
+                <span class="quick-ico"><svg th:replace="~{layout/fragments :: icon('check','')}"></svg></span>
+                <span>
+                    <b th:text="#{quick.admin.review}">Revisar propuestas</b>
+                    <small th:text="#{quick.admin.review.desc}">Aprueba o rechaza pendientes</small>
+                </span>
+            </a>
+            <a class="quick" th:href="@{/admin/users}">
+                <span class="quick-ico"><svg th:replace="~{layout/fragments :: icon('users','')}"></svg></span>
+                <span>
+                    <b th:text="#{quick.admin.users}">Gestionar usuarios</b>
+                    <small th:text="#{quick.admin.users.desc}">Cambia roles del equipo</small>
+                </span>
+            </a>
+            <a class="quick" th:href="@{/admin/actividades/panel}">
+                <span class="quick-ico"><svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg></span>
+                <span>
+                    <b th:text="#{quick.admin.activities}">Asignar actividades</b>
+                    <small th:text="#{quick.admin.activities.desc}">Tareas y horas del equipo</small>
+                </span>
+            </a>
+            <a class="quick" th:href="@{/admin/schedules}">
+                <span class="quick-ico"><svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg></span>
+                <span>
+                    <b th:text="#{quick.admin.schedules}">Ver horarios</b>
+                    <small th:text="#{quick.admin.schedules.desc}">Calendario completo del centro</small>
+                </span>
+            </a>
+        </section>
+    </main>
+</div>
+<div th:replace="~{layout/fragments :: visualEditorOverlay}"></div>
+</body>
+</html>

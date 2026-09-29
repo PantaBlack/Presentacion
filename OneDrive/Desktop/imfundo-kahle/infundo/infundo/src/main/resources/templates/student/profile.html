@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Mi perfil')}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: studentSidebar('profile')}"></aside>
+    <main class="content content--student">
+        <h1 class="page-title" th:text="#{student.profile.title}">Mi perfil</h1>
+        <p class="page-subtitle" th:text="#{student.profile.subtitle}">Actualiza tu informacion</p>
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <div class="card" style="max-width:560px">
+            <div class="flex gap mb-3" style="align-items:center">
+                <span class="avatar" style="width:64px;height:64px;font-size:1.6rem" th:text="${user.initial}">A</span>
+                <div>
+                    <h3 style="margin:0" th:text="${user.fullName}">Nombre</h3>
+                    <p class="text-muted" style="margin:0" th:text="${user.email}">correo</p>
+                </div>
+            </div>
+            <form th:action="@{/student/profile}" method="post">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label th:text="#{register.firstName}">Nombre</label>
+                        <input type="text" name="firstName" class="form-control" th:value="${user.firstName}" required/>
+                    </div>
+                    <div class="form-group">
+                        <label th:text="#{register.lastName}">Apellido</label>
+                        <input type="text" name="lastName" class="form-control" th:value="${user.lastName}" required/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label th:text="#{student.preferredLanguage}">Idioma preferido</label>
+                    <select name="preferredLanguage" class="form-control">
+                        <option value="es" th:text="#{lang.spanish}" th:selected="${user.preferredLanguage == 'es'}">Espanol</option>
+                        <option value="fr" th:text="#{lang.french}" th:selected="${user.preferredLanguage == 'fr'}">Frances</option>
+                        <option value="en" th:text="#{lang.english}" th:selected="${user.preferredLanguage == 'en'}">Ingles</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" th:text="#{common.save}">Guardar</button>
+            </form>
+        </div>
+    </main>
+</div>
+</body>
+</html>

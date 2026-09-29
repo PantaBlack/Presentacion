@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{teacher.materials.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: teacherSidebar('materials')}"></aside>
+
+    <main class="content content--teacher">
+        <header class="page-head page-head--teacher">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('book','ico-sm')}"></svg>
+                    <span th:text="#{teacher.portal}">Portal Profesor</span>
+                </span>
+                <h1 th:text="#{teacher.materials.title}">Mis materiales</h1>
+                <p th:text="#{teacher.materials.subtitle}">Comparte recursos con tus alumnos</p>
+            </div>
+            <div class="page-head-side">
+                <button class="btn btn-light" onclick="document.getElementById('newForm').classList.toggle('hidden')">
+                    <span th:text="'+ ' + #{teacher.materials.new}">+ Subir material</span>
+                </button>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Subir material ===================== -->
+        <section id="newForm" class="panel hidden">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('plus','')}"></svg>
+                    <span th:text="#{teacher.materials.new}">Subir material</span>
+                </h3>
+            </div>
+            <div class="panel-body">
+                <form th:action="@{/teacher/materials}" method="post" enctype="multipart/form-data">
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label th:text="#{common.title}">Titulo</label>
+                            <input type="text" name="title" class="form-control" required/>
+                        </div>
+                        <div class="form-group">
+                            <label th:text="#{common.category}">Categoria</label>
+                            <select name="category" class="form-control" required>
+                                <option th:each="c : ${categories}" th:value="${c}" th:text="#{'cat.' + ${c}}">Cat</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label th:text="#{common.language}">Idioma</label>
+                            <select name="language" class="form-control" required>
+                                <option th:each="l : ${languages}" th:value="${l}" th:text="#{'lang.' + ${l}}">Idioma</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label th:text="#{common.description}">Descripcion</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label th:text="#{material.form.file}">Archivo (PDF, Word, imagen, audio, video...)</label>
+                            <input type="file" name="archivo" id="inputArchivo" class="form-control"/>
+                            <small class="text-muted" id="archivoNombre" th:text="#{material.form.file.hint}">Maximo 15 MB.</small>
+                        </div>
+                        <div class="form-group">
+                            <label th:text="#{material.form.link}">O enlace externo (URL)</label>
+                            <input type="url" name="externalLink" class="form-control" placeholder="https://..."/>
+                        </div>
+                    </div>
+                    <p class="text-muted" style="font-size:.82rem;margin:-8px 0 16px" th:text="#{material.form.needsOne}">
+                        Sube un archivo, pega un enlace, o ambos.
+                    </p>
+
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label th:text="#{material.form.visibility}">Quien puede verlo</label>
+                            <select name="visibility" class="form-control">
+                                <option th:each="v : ${visibilities}" th:value="${v}"
+                                        th:text="#{'material.visibility.' + ${v}}">Visibilidad</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label th:text="#{teacher.materials.form.scope}">Para que clase es (opcional)</label>
+                            <select name="scheduleId" class="form-control">
+                                <option value="" th:text="#{teacher.materials.form.scope.general}">General</option>
+                                <option th:each="s : ${schedules}" th:value="${s.id}"
+                                        th:text="${s.subject} + ' - ' + #{'day.' + ${s.dayOfWeek}} + ' ' + ${s.startTime}">Clase</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" th:text="#{common.save}">Guardar</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===================== Mis materiales ===================== -->
+        <div class="grid grid-auto" th:if="${!materials.isEmpty()}">
+            <div class="card" th:each="m : ${materials}">
+                <div class="flex-between" style="align-items:flex-start">
+                    <div style="font-size:2rem;line-height:1" th:text="${m.icon}">📄</div>
+                    <span class="chip" th:classappend="${m.visibility.name() == 'TEACHERS_ONLY'} ? 'chip--warn' : 'chip--success'"
+                          th:text="#{'material.visibility.short.' + ${m.visibility}}">Visibilidad</span>
+                </div>
+                <h3 style="margin:10px 0 4px" th:text="${m.title}">Titulo</h3>
+                <p class="text-muted" style="font-size:.86rem" th:text="${m.description}">Descripcion</p>
+                <div class="flex gap wrap mb-1">
+                    <span class="chip chip--lang" th:text="#{'lang.' + ${m.language}}">Idioma</span>
+                    <span class="chip" th:text="#{'cat.' + ${m.category}}">Categoria</span>
+                    <span class="chip chip--primary" th:if="${m.schedule}"
+                          th:text="'&#127908; ' + #{material.scope.exclusive} + ': ' + ${m.schedule.subject}">Exclusivo</span>
+                </div>
+                <div class="flex gap wrap" style="font-size:.78rem;color:var(--gray)" th:if="${m.hasFile}">
+                    <span>
+                        <svg th:replace="~{layout/fragments :: icon('file','ico-sm')}"></svg>
+                        <span th:text="${m.fileName}">archivo.pdf</span> &middot; <span th:text="${m.fileSizeLabel}">1 MB</span>
+                    </span>
+                </div>
+                <div class="flex gap wrap mt-2">
+                    <a class="btn btn-primary btn-sm" th:if="${m.hasFile}" th:href="@{'/materiales/' + ${m.id} + '/descargar'}"
+                       th:text="#{material.download}">Descargar</a>
+                    <a class="btn btn-outline btn-sm" th:if="${m.externalLink}" th:href="${m.externalLink}"
+                       target="_blank" rel="noopener" th:text="#{common.view}">Ver</a>
+                    <form th:action="@{'/teacher/materials/' + ${m.id} + '/delete'}" method="post"
+                          th:attr="data-confirm=#{admin.activities.confirmDelete}">
+                        <button class="btn btn-danger btn-sm" th:text="#{common.delete}">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <th:block th:if="${materials.isEmpty()}">
+            <div th:replace="~{layout/fragments :: empty(#{common.none})}"></div>
+        </th:block>
+    </main>
+</div>
+
+<script>
+    const inputArchivo = document.getElementById('inputArchivo');
+    const archivoNombre = document.getElementById('archivoNombre');
+    const textoBase = archivoNombre.textContent;
+    inputArchivo.addEventListener('change', () => {
+        if (inputArchivo.files.length > 0) {
+            const f = inputArchivo.files[0];
+            const mb = (f.size / (1024 * 1024)).toFixed(2);
+            archivoNombre.textContent = f.name + ' (' + mb + ' MB)';
+        } else {
+            archivoNombre.textContent = textoBase;
+        }
+    });
+</script>
+<div th:replace="~{layout/fragments :: confirmScript}"></div>
+</body>
+</html>

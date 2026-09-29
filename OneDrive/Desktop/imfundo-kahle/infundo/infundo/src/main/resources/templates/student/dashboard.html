@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Panel Alumno')}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: studentSidebar('dashboard')}"></aside>
+
+    <main class="content content--student"
+          th:with="hours=${weeklyMinutes / 60}, mins=${weeklyMinutes % 60}">
+
+        <!-- ===================== Cabecera ===================== -->
+        <header class="page-head page-head--student"
+                data-bg-ck="banner-alumno" data-bg-var="--head-bg" data-bg-class="page-head--fondo-custom"
+                th:with="bannerUrl=${imgV.containsKey('banner-alumno')} ? @{/contenido/imagen/banner-alumno(v=${imgV.get('banner-alumno')})} : null"
+                th:classappend="${bannerUrl != null} ? 'page-head--fondo-custom' : ''"
+                th:style="${bannerUrl != null} ? ('--head-bg:url(' + ${bannerUrl} + ')') : null">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('graduation','ico-sm')}"></svg>
+                    <span data-ck="student.portal" th:text="#{student.portal}">Portal Alumno</span>
+                </span>
+                <h1>
+                    <span data-ck="dash.greeting" th:text="#{dash.greeting}">Hola</span>,
+                    <span th:text="${currentUser != null} ? ${currentUser.firstName} : ''">Alumno</span>
+                </h1>
+                <p data-ck="student.dashboard.subtitle" th:text="#{student.dashboard.subtitle}">Bienvenido a tu portal de aprendizaje</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b th:text="${enrolledCount}">0</b>
+                    <span th:text="#{student.stat.classes}">Clases inscritas</span>
+                </div>
+                <div class="head-stat">
+                    <b th:text="${hours} + 'h ' + ${mins} + 'm'">0h</b>
+                    <span th:text="#{student.stat.weekly}">Clases por semana</span>
+                </div>
+            </div>
+        </header>
+
+        
+        <div class="welcome-card" style="margin-bottom: 2.5rem; border-radius: 16px; overflow: hidden; display: flex; align-items: stretch; background: linear-gradient(135deg, var(--surface), #f0f7ff); box-shadow: 0 8px 24px rgba(0,0,0,0.06);">
+            <div style="flex: 1; padding: 2.5rem; display: flex; flex-direction: column; justify-content: center;">
+                <h2 style="margin-bottom: 0.8rem; color: var(--primary-dark); font-size: 1.6rem;">¡Nos alegra verte de nuevo!</h2>
+                <div style="background: rgba(255,255,255,0.7); padding: 1.5rem; border-radius: 12px; border-left: 4px solid var(--primary); font-style: italic;">
+                    <p style="color: var(--gray); line-height: 1.6; font-size: 1.1rem; margin: 0;" th:text="${motivationalQuote} != null ? '&quot;' + ${motivationalQuote} + '&quot;' : 'Cree en ti mismo y en lo que eres.'"></p>
+                </div>
+            </div>
+            <div style="width: 35%; min-width: 250px;">
+                <div class="welcome-img" data-bg-ck="welcome-student-img" data-bg-var="--welcome-bg" data-bg-class="welcome-img--foto"
+                     th:with="welcomeUrl=${imgV.containsKey('welcome-student-img')} ? @{/contenido/imagen/welcome-student-img(v=${imgV.get('welcome-student-img')})} : null"
+                     th:classappend="${welcomeUrl != null} ? 'welcome-img--foto' : ''"
+                     th:style="${welcomeUrl != null} ? ('--welcome-bg:url(' + ${welcomeUrl} + ')') : null"></div>
+            </div>
+        </div>
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Indicadores ===================== -->
+        <section class="kpi-grid kpi-grid--3">
+            <a class="kpi" th:href="@{/student/classes}">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--accent">
+                        <svg th:replace="~{layout/fragments :: icon('graduation','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag kpi-tag--up" th:if="${enrolledCount > 0}" th:text="#{kpi.tag.active}">Activo</span>
+                </div>
+                <div class="kpi-value" th:text="${enrolledCount}">0</div>
+                <div class="kpi-label" th:text="#{student.stat.classes}">Clases inscritas</div>
+                <div class="kpi-foot">
+                    <span th:text="#{student.stat.available} + ': ' + ${totalClasses}">Disponibles: 0</span>
+                </div>
+            </a>
+
+            <div class="kpi">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--info">
+                        <svg th:replace="~{layout/fragments :: icon('clock','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag" th:text="#{kpi.tag.week}">Semana</span>
+                </div>
+                <div class="kpi-value" th:text="${hours} + 'h'">0h</div>
+                <div class="kpi-label" th:text="#{student.stat.weekly}">Clases por semana</div>
+                <div class="kpi-foot">
+                    <span th:text="${weeklyMinutes} + ' ' + #{common.minutes}">0 minutos</span>
+                </div>
+            </div>
+
+            <a class="kpi" th:href="@{/student/materials}">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--violet">
+                        <svg th:replace="~{layout/fragments :: icon('book','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag" th:text="#{kpi.tag.library}">Biblioteca</span>
+                </div>
+                <div class="kpi-value" th:text="${totalMaterials}">0</div>
+                <div class="kpi-label" th:text="#{student.stat.materials}">Materiales disponibles</div>
+                <div class="kpi-foot">
+                    <span th:text="#{student.materials.subtitle}">Recursos para tu aprendizaje</span>
+                </div>
+            </a>
+        </section>
+
+        <!-- ===================== Mi semana ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+                    <span th:text="#{student.week.title}">Mi semana</span>
+                </h3>
+                <a class="panel-link" th:href="@{/student/classes}">
+                    <span th:text="#{student.classes.title}">Clases disponibles</span>
+                    <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+                </a>
+            </div>
+            <div class="panel-body">
+                <div class="agenda">
+                    <div class="agenda-col" th:each="entry : ${schedulesByDay}">
+                        <h4 th:text="#{'day.' + ${entry.key}}">Dia</h4>
+
+                        <div class="agenda-item" th:each="s : ${entry.value}"
+                             th:classappend="${s.language.name() == 'SPANISH'} ? 'agenda-item--es' :
+                                             (${s.language.name() == 'FRENCH'} ? 'agenda-item--fr' : 'agenda-item--en')">
+                            <span class="t" th:text="${s.startTime} + ' - ' + ${s.endTime}">Hora</span>
+                            <span class="s" th:text="${s.subject}">Materia</span>
+                            <span class="m" th:text="${s.teacher.fullName}">Profesor</span>
+                        </div>
+
+                        <p class="agenda-free" th:if="${entry.value.isEmpty()}" th:text="#{agenda.free}">Libre</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ Mis clases + clases sugeridas ============ -->
+        <section class="panel-grid">
+
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('graduation','')}"></svg>
+                        <span th:text="#{student.classes.mine}">Mis clases inscritas</span>
+                    </h3>
+                </div>
+                <div class="panel-body panel-body--flush" th:if="${!enrollments.isEmpty()}">
+                    <div class="list-row" th:each="e : ${enrollments}">
+                        <span class="row-mark row-mark--accent" th:text="${e.schedule.teacher.initial}">P</span>
+                        <div class="row-main">
+                            <strong th:text="${e.schedule.subject}">Materia</strong>
+                            <small th:text="#{'day.' + ${e.schedule.dayOfWeek}} + ' &middot; '
+                                             + ${e.schedule.startTime} + ' - ' + ${e.schedule.endTime}
+                                             + ' &middot; ' + ${e.schedule.teacher.fullName}">Detalle</small>
+                        </div>
+                        <div class="row-side">
+                            <span class="chip chip--lang" th:text="#{'lang.' + ${e.schedule.language}}">Idioma</span>
+                            <form th:action="@{'/student/classes/' + ${e.schedule.id} + '/cancel'}" method="post">
+                                <button class="btn btn-outline btn-sm" th:text="#{student.cancel}">Cancelar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <th:block th:if="${enrollments.isEmpty()}">
+                    <div th:replace="~{layout/fragments :: empty(#{student.noClasses})}"></div>
+                </th:block>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('trend','')}"></svg>
+                        <span th:text="#{student.suggested.title}">Clases sugeridas</span>
+                    </h3>
+                    <a class="panel-link" th:href="@{/student/classes}">
+                        <span th:text="#{common.view}">Ver</span>
+                        <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+                    </a>
+                </div>
+                <div class="panel-body panel-body--flush" th:if="${!suggestedClasses.isEmpty()}">
+                    <div class="list-row" th:each="s : ${suggestedClasses}">
+                        <span class="row-mark">
+                            <svg th:replace="~{layout/fragments :: icon('plus','')}"></svg>
+                        </span>
+                        <div class="row-main">
+                            <strong th:text="${s.subject}">Materia</strong>
+                            <small th:text="#{'day.' + ${s.dayOfWeek}} + ' &middot; ' + ${s.startTime} + ' - ' + ${s.endTime}
+                                             + ' &middot; ' + #{common.seats} + ': ' + ${scheduleService.availableSeats(s)}">Detalle</small>
+                        </div>
+                        <div class="row-side">
+                            <form th:action="@{'/student/classes/' + ${s.id} + '/enroll'}" method="post">
+                                <button class="btn btn-primary btn-sm" th:text="#{student.enroll}">Inscribirse</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <th:block th:if="${suggestedClasses.isEmpty()}">
+                    <div th:replace="~{layout/fragments :: empty(#{student.suggested.empty})}"></div>
+                </th:block>
+            </div>
+        </section>
+
+        <!-- ===================== Materiales ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('book','')}"></svg>
+                    <span th:text="#{student.availableMaterials}">Materiales para ti</span>
+                </h3>
+                <a class="panel-link" th:href="@{/student/materials}">
+                    <span th:text="#{common.view}">Ver</span>
+                    <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+                </a>
+            </div>
+            <div class="panel-body" th:if="${!materials.isEmpty()}">
+                <div class="grid grid-auto">
+                    <div class="card" th:each="m : ${materials}" style="box-shadow:none;border:1px solid var(--line)">
+                        <div style="font-size:1.7rem;line-height:1" th:text="${m.icon}">&#128218;</div>
+                        <h4 style="margin:10px 0 6px;font-size:1rem" th:text="${m.title}">Titulo</h4>
+                        <p class="text-muted" style="font-size:.82rem;margin:0 0 12px"
+                           th:text="${m.teacher.fullName}">Profesor</p>
+                        <div class="flex gap wrap" style="align-items:center">
+                            <span class="chip chip--lang" th:text="#{'lang.' + ${m.language}}">Idioma</span>
+                            <span class="chip" th:text="#{'cat.' + ${m.category}}">Categoria</span>
+                        </div>
+                        <div class="flex gap wrap mt-2">
+                            <a class="btn btn-primary btn-sm" th:if="${m.hasFile}" th:href="@{'/materiales/' + ${m.id} + '/descargar'}"
+                               th:text="#{material.download}">Descargar</a>
+                            <a class="btn btn-outline btn-sm" th:if="${m.externalLink}" th:href="${m.externalLink}"
+                               target="_blank" rel="noopener" th:text="#{common.view}">Ver</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <th:block th:if="${materials.isEmpty()}">
+                <div th:replace="~{layout/fragments :: empty(#{common.none})}"></div>
+            </th:block>
+        </section>
+
+        <!-- ===================== Mis actividades (asignadas por el admin) ===================== -->
+        <section class="panel" id="actividades">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg>
+                    <span th:text="#{myActivities.title}">Mis actividades</span>
+                    <span class="panel-sub" th:text="#{myActivities.subtitle}">Tareas asignadas por administracion</span>
+                </h3>
+                <span class="chip chip--warn" th:if="${misActividades.tienePendientes()}"
+                      th:text="${misActividades.pendientes()} + ' ' + #{act.status.pending}">Pendientes</span>
+            </div>
+            <div class="panel-body panel-body--flush" th:if="${misActividades.total() > 0}">
+                <div class="list-row" th:each="a : ${misActividades.actividades()}">
+                    <span class="row-mark" th:classappend="${a.estadoActual == 'Completada'} ? 'row-mark--accent'"
+                          th:text="${a.horasPlanificadas} + 'h'">0h</span>
+                    <div class="row-main">
+                        <strong th:text="${a.tareaDetalle}">Tarea</strong>
+                        <small th:text="${a.diaSemana != null} ? (#{'day.' + ${a.diaSemana}} + ' &middot; ' + ${a.rangoHorario}) : ${a.rangoHorario}">Horario</small>
+                    </div>
+                    <div class="row-side">
+                        <span class="chip"
+                              th:classappend="${a.estadoActual == 'Completada'} ? 'chip--success' :
+                                              (${a.estadoActual == 'En curso'} ? 'chip--primary' : 'chip--warn')"
+                              th:text="${a.estadoActual}">Estado</span>
+                    </div>
+                </div>
+            </div>
+            <th:block th:if="${misActividades.total() == 0}">
+                <div th:replace="~{layout/fragments :: empty(#{myActivities.empty})}"></div>
+            </th:block>
+        </section>
+
+        <!-- ===================== Accesos rapidos ===================== -->
+        <h3 style="margin:26px 0 14px;color:var(--primary-dark)" th:text="#{quick.title}">Accesos rapidos</h3>
+        <section class="quick-grid">
+            <a class="quick" th:href="@{/student/classes}">
+                <span class="quick-ico"><svg th:replace="~{layout/fragments :: icon('plus','')}"></svg></span>
+                <span>
+                    <b th:text="#{student.classes.title}">Clases disponibles</b>
+                    <small th:text="#{student.classes.subtitle}">Explora e inscribete</small>
+                </span>
+            </a>
+            <a class="quick" th:href="@{/student/materials}">
+                <span class="quick-ico"><svg th:replace="~{layout/fragments :: icon('book','')}"></svg></span>
+                <span>
+                    <b th:text="#{student.materials.title}">Materiales</b>
+                    <small th:text="#{student.materials.subtitle}">Recursos para tu aprendizaje</small>
+                </span>
+            </a>
+            <a class="quick" th:href="@{/student/profile}">
+                <span class="quick-ico"><svg th:replace="~{layout/fragments :: icon('user','')}"></svg></span>
+                <span>
+                    <b th:text="#{student.profile.title}">Mi perfil</b>
+                    <small th:text="#{student.profile.subtitle}">Actualiza tu informacion</small>
+                </span>
+            </a>
+        </section>
+    </main>
+</div>
+<div th:replace="~{layout/fragments :: visualEditorOverlay}"></div>
+</body>
+</html>

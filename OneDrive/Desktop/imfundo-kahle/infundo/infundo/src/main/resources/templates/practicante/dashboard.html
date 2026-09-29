@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Panel Practicante')}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: practicanteSidebar('dashboard')}"></aside>
+
+    <main class="content content--practicante"
+          th:with="progreso=${horasPlanificadas == 0 ? 0 : (horasCompletadas * 100 / horasPlanificadas)}">
+
+        <!-- ===================== Cabecera ===================== -->
+        <header class="page-head page-head--practicante"
+                data-bg-ck="banner-practicante" data-bg-var="--head-bg" data-bg-class="page-head--fondo-custom"
+                th:with="bannerUrl=${imgV.containsKey('banner-practicante')} ? @{/contenido/imagen/banner-practicante(v=${imgV.get('banner-practicante')})} : null"
+                th:classappend="${bannerUrl != null} ? 'page-head--fondo-custom' : ''"
+                th:style="${bannerUrl != null} ? ('--head-bg:url(' + ${bannerUrl} + ')') : null">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('target','ico-sm')}"></svg>
+                    <span data-ck="practicante.portal" th:text="#{practicante.portal}">Portal Practicante</span>
+                </span>
+                <h1>
+                    <span data-ck="dash.greeting" th:text="#{dash.greeting}">Hola</span>,
+                    <span th:text="${currentUser != null} ? ${currentUser.firstName} : ''">Practicante</span>
+                </h1>
+                <p data-ck="practicante.dashboard.subtitle" th:text="#{practicante.dashboard.subtitle}">Aqui ves las actividades que te asigno el administrador.</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b th:text="${horasPlanificadas} + 'h'">0h</b>
+                    <span th:text="#{practicante.stat.plannedHours}">Horas planificadas</span>
+                </div>
+                <div class="head-stat">
+                    <b th:text="${progreso} + '%'">0%</b>
+                    <span th:text="#{practicante.stat.progress}">Progreso</span>
+                </div>
+            </div>
+        </header>
+
+        
+        <div class="welcome-card" style="margin-bottom: 2.5rem; border-radius: 16px; overflow: hidden; display: flex; align-items: stretch; background: linear-gradient(135deg, var(--surface), #f5f0ff); box-shadow: 0 8px 24px rgba(0,0,0,0.06);">
+            <div style="flex: 1; padding: 2.5rem; display: flex; flex-direction: column; justify-content: center;">
+                <h2 style="margin-bottom: 0.8rem; color: var(--primary-dark); font-size: 1.6rem;">¡Manos a la obra!</h2>
+                <div style="background: rgba(255,255,255,0.7); padding: 1.5rem; border-radius: 12px; border-left: 4px solid var(--violet); font-style: italic;">
+                    <p style="color: var(--gray); line-height: 1.6; font-size: 1.1rem; margin: 0;" th:text="${motivationalQuote} != null ? '&quot;' + ${motivationalQuote} + '&quot;' : 'El experto de hoy fue el practicante de ayer.'"></p>
+                </div>
+            </div>
+            <div style="width: 35%; min-width: 250px;">
+                <div class="welcome-img" data-bg-ck="welcome-practicante-img" data-bg-var="--welcome-bg" data-bg-class="welcome-img--foto"
+                     th:with="welcomeUrl=${imgV.containsKey('welcome-practicante-img')} ? @{/contenido/imagen/welcome-practicante-img(v=${imgV.get('welcome-practicante-img')})} : null"
+                     th:classappend="${welcomeUrl != null} ? 'welcome-img--foto' : ''"
+                     th:style="${welcomeUrl != null} ? ('--welcome-bg:url(' + ${welcomeUrl} + ')') : null"></div>
+            </div>
+        </div>
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Indicadores ===================== -->
+        <section class="kpi-grid" id="horas">
+            <div class="kpi">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--info">
+                        <svg th:replace="~{layout/fragments :: icon('clipboard','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag" th:text="#{kpi.tag.assigned}">Asignadas</span>
+                </div>
+                <div class="kpi-value" th:text="${totalActividades}">0</div>
+                <div class="kpi-label" th:text="#{practicante.stat.activities}">Actividades asignadas</div>
+                <div class="kpi-foot">
+                    <span th:text="#{practicante.stat.plannedHours} + ': ' + ${horasPlanificadas} + 'h'">Horas: 0h</span>
+                </div>
+            </div>
+
+            <div class="kpi">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--warn">
+                        <svg th:replace="~{layout/fragments :: icon('bell','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag kpi-tag--alert" th:if="${pendientes > 0}"
+                          th:text="#{kpi.tag.action}">Requiere accion</span>
+                </div>
+                <div class="kpi-value" th:text="${pendientes}">0</div>
+                <div class="kpi-label" th:text="#{act.status.pending}">Pendientes</div>
+                <div class="kpi-foot">
+                    <span th:text="#{practicante.hint.pending}">Empieza por las mas antiguas</span>
+                </div>
+            </div>
+
+            <div class="kpi">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--accent">
+                        <svg th:replace="~{layout/fragments :: icon('trend','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag" th:text="#{kpi.tag.week}">Semana</span>
+                </div>
+                <div class="kpi-value" th:text="${enCurso}">0</div>
+                <div class="kpi-label" th:text="#{act.status.inprogress}">En curso</div>
+                <div class="kpi-foot">
+                    <span th:text="#{practicante.hint.inprogress}">Tareas que ya empezaste</span>
+                </div>
+            </div>
+
+            <div class="kpi">
+                <div class="kpi-top">
+                    <span class="kpi-ico kpi-ico--success">
+                        <svg th:replace="~{layout/fragments :: icon('check','ico-lg')}"></svg>
+                    </span>
+                    <span class="kpi-tag kpi-tag--up" th:if="${completadas > 0}" th:text="#{kpi.tag.done}">Listo</span>
+                </div>
+                <div class="kpi-value" th:text="${completadas}">0</div>
+                <div class="kpi-label" th:text="#{act.status.done}">Completadas</div>
+                <div class="kpi-foot">
+                    <span th:text="${horasCompletadas} + 'h ' + #{practicante.stat.doneHours}">0h cumplidas</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ Progreso de horas + reparto de estados ============ -->
+        <section class="panel-grid">
+
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('target','')}"></svg>
+                        <span th:text="#{practicante.hours.title}">Control de horas</span>
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <div class="meter-row">
+                        <div class="meter-head">
+                            <span th:text="#{practicante.hours.completed}">Horas cumplidas</span>
+                            <b th:text="${horasCompletadas} + ' / ' + ${horasPlanificadas} + 'h'">0 / 0h</b>
+                        </div>
+                        <div class="meter meter--success">
+                            <span th:style="'width:' + ${progreso} + '%'"></span>
+                        </div>
+                        <small class="text-muted" th:text="#{practicante.hours.hint}">
+                            Se cuentan las actividades marcadas como completadas.
+                        </small>
+                    </div>
+
+                    <div class="meter-row" th:with="pct=${totalActividades == 0 ? 0 : (pendientes * 100 / totalActividades)}">
+                        <div class="meter-head">
+                            <span th:text="#{act.status.pending}">Pendientes</span>
+                            <b th:text="${pendientes}">0</b>
+                        </div>
+                        <div class="meter meter--warn"><span th:style="'width:' + ${pct} + '%'"></span></div>
+                    </div>
+
+                    <div class="meter-row" th:with="pct=${totalActividades == 0 ? 0 : (enCurso * 100 / totalActividades)}">
+                        <div class="meter-head">
+                            <span th:text="#{act.status.inprogress}">En curso</span>
+                            <b th:text="${enCurso}">0</b>
+                        </div>
+                        <div class="meter"><span th:style="'width:' + ${pct} + '%'"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <h3>
+                        <svg th:replace="~{layout/fragments :: icon('chart','')}"></svg>
+                        <span th:text="#{practicante.chart.title}">Mis actividades por estado</span>
+                    </h3>
+                </div>
+                <div class="panel-body">
+                    <div class="donut-wrap"
+                         th:with="degP=${totalActividades == 0 ? 0 : (pendientes * 360 / totalActividades)},
+                                  degC=${totalActividades == 0 ? 0 : (enCurso * 360 / totalActividades)}">
+                        <div class="donut donut--work" th:classappend="${totalActividades == 0} ? 'donut--empty'"
+                             th:style="'--a:' + ${degP} + 'deg;--b:' + ${degP + degC} + 'deg'">
+                            <div class="donut-center">
+                                <b th:text="${totalActividades}">0</b>
+                                <span th:text="#{common.total}">Total</span>
+                            </div>
+                        </div>
+                        <div class="legend">
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#FDB44B"></span>
+                                <span class="legend-name" th:text="#{act.status.pending}">Pendiente</span>
+                                <b th:text="${pendientes}">0</b>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#3E7BFA"></span>
+                                <span class="legend-name" th:text="#{act.status.inprogress}">En curso</span>
+                                <b th:text="${enCurso}">0</b>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-dot" style="background:#00B894"></span>
+                                <span class="legend-name" th:text="#{act.status.done}">Completada</span>
+                                <b th:text="${completadas}">0</b>
+                            </div>
+                            <p class="text-muted" style="font-size:.8rem;margin:6px 0 0"
+                               th:if="${totalActividades == 0}" th:text="#{practicante.chart.empty}">
+                                Todavia no tienes actividades asignadas.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Lista de actividades ===================== -->
+        <section class="panel" id="actividades">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg>
+                    <span th:text="#{practicante.activities.title}">Mis actividades</span>
+                    <span class="panel-sub" th:text="#{practicante.activities.sub}">Asignadas por el administrador</span>
+                </h3>
+                <span class="chip chip--primary" th:text="${totalActividades} + ' ' + #{practicante.menu.activities}">
+                    0 actividades
+                </span>
+            </div>
+
+            <div class="panel-body panel-body--flush" th:if="${!actividades.isEmpty()}">
+                <div class="list-row" th:each="a : ${actividades}">
+                    <span class="row-mark"
+                          th:classappend="${a.estadoActual == 'Completada'} ? 'row-mark--accent'"
+                          th:text="${a.horasPlanificadas} + 'h'">0h</span>
+                    <div class="row-main">
+                        <strong th:text="${a.tareaDetalle}">Tarea</strong>
+                        <small th:text="${a.diaSemana != null} ? (#{'day.' + ${a.diaSemana}} + ' &middot; ' + ${a.rangoHorario}) : ${a.rangoHorario}">Rango horario</small>
+                        <small th:if="${a.notasAdicionales}" th:text="${a.notasAdicionales}">Notas</small>
+                    </div>
+                    <div class="row-side">
+                        <span class="chip"
+                              th:classappend="${a.estadoActual == 'Completada'} ? 'chip--success' :
+                                              (${a.estadoActual == 'En curso'} ? 'chip--primary' : 'chip--warn')"
+                              th:text="${a.estadoActual}">Estado</span>
+                    </div>
+                </div>
+            </div>
+
+            <th:block th:if="${actividades.isEmpty()}">
+                <div th:replace="~{layout/fragments :: empty(#{practicante.activities.empty})}"></div>
+            </th:block>
+        </section>
+
+        <!-- ===================== Aviso informativo ===================== -->
+        <section class="panel">
+            <div class="panel-body">
+                <div class="flex gap wrap" style="align-items:flex-start">
+                    <span class="kpi-ico kpi-ico--info" style="flex-shrink:0">
+                        <svg th:replace="~{layout/fragments :: icon('bell','ico-lg')}"></svg>
+                    </span>
+                    <div>
+                        <h4 style="margin:0 0 6px;color:var(--primary-dark)"
+                            th:text="#{practicante.note.title}">Como funciona tu panel</h4>
+                        <p class="text-muted" style="margin:0;max-width:70ch"
+                           th:text="#{practicante.note.body}">
+                            El administrador registra tus tareas y las horas planificadas en el panel de actividades.
+                            Cuando cambie el estado de una tarea, lo veras reflejado aqui.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+<div th:replace="~{layout/fragments :: visualEditorOverlay}"></div>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.availability.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('disponibilidad')}"></aside>
+
+    <main class="content content--admin">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('clock','ico-sm')}"></svg>
+                    <span th:text="#{admin.availability.eyebrow}">Equipo</span>
+                </span>
+                <h1 th:text="#{admin.availability.title}">Centro de control de horarios</h1>
+                <p th:text="#{admin.availability.subtitle}">Vista compacta de profesores, practicantes y alumnos.</p>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Filtro por dia + hora ===================== -->
+        <section class="panel">
+            <div class="panel-body">
+                <form th:action="@{/admin/disponibilidad}" method="get" class="flex gap wrap" style="align-items:flex-end">
+                    <div class="form-group" style="margin:0;min-width:200px">
+                        <label th:text="#{admin.availability.filter.day}">Consultar dia</label>
+                        <select name="diaFiltro" class="form-control">
+                            <option value="" th:text="#{admin.availability.filter.placeholder}">-- Selecciona un dia --</option>
+                            <option th:each="d : ${dias}" th:value="${d}" th:text="#{'day.' + ${d}}" th:selected="${diaFiltro == d}">Dia</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;min-width:170px">
+                        <label th:text="#{admin.availability.filter.hour}">A que hora</label>
+                        <select name="horaFiltro" class="form-control">
+                            <option value="" th:text="#{admin.availability.filter.hourPlaceholder}">-- Selecciona una hora --</option>
+                            <option th:each="h : ${horas}" th:value="${h}" th:text="${h}" th:selected="${horaFiltro == h}">08:00</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" th:text="#{admin.availability.generate}">Generar matriz</button>
+                    <a th:if="${diaFiltro != null and diaFiltro != ''}" th:href="@{/admin/disponibilidad}"
+                       class="btn btn-outline" th:text="#{admin.availability.clear}">Limpiar</a>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===================== Vista 1: quien esta libre a esa hora exacta ===================== -->
+        <section th:if="${cruceHora != null}" class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+                    <span th:text="#{'day.' + ${diaFiltro}} + ' &middot; ' + ${horaFiltro}">Dia - Hora</span>
+                </h3>
+            </div>
+
+            <th:block th:if="${cruceHora.isEmpty()}">
+                <div th:replace="~{layout/fragments :: empty(#{admin.availability.empty.hour})}"></div>
+            </th:block>
+
+            <div class="panel-body" th:if="${!cruceHora.isEmpty()}">
+                <div class="grid grid-2 gap">
+                    <div>
+                        <h4 style="margin:0 0 10px;color:var(--success)" th:text="#{admin.availability.col.disponibles}">Disponibles</h4>
+                        <div class="avail-cell-list" style="flex-direction:column;align-items:stretch">
+                            <span class="person-chip person-chip--libre" th:each="p : ${cruceHora}" th:if="${p.disponible}"
+                                  th:title="${p.usuario.fullName}">
+                                <span class="mini-avatar" th:classappend="'avatar--' + ${#strings.toLowerCase(p.usuario.role)}" th:text="${p.usuario.initial}">A</span>
+                                <span th:text="${p.usuario.fullName}">Nombre</span>
+                                <span class="badge badge-role" style="margin-left:auto" th:classappend="'badge-role--' + ${#strings.toLowerCase(p.usuario.role)}"
+                                      th:text="#{'role.' + ${p.usuario.role}}">Rol</span>
+                            </span>
+                            <p class="text-muted" style="font-size:.82rem" th:if="${cruceHora.?[disponible].isEmpty()}">
+                                <span th:text="#{admin.availability.empty.hour}">Nadie</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="margin:0 0 10px;color:var(--danger)" th:text="#{admin.availability.col.noDisponibles}">No disponibles</h4>
+                        <div class="avail-cell-list" style="flex-direction:column;align-items:stretch">
+                            <span class="person-chip person-chip--ocupado" th:each="p : ${cruceHora}" th:unless="${p.disponible}"
+                                  th:title="${p.usuario.fullName}">
+                                <span class="mini-avatar" th:classappend="'avatar--' + ${#strings.toLowerCase(p.usuario.role)}" th:text="${p.usuario.initial}">A</span>
+                                <span th:text="${p.usuario.fullName}">Nombre</span>
+                                <small style="margin-left:auto;opacity:.8"
+                                       th:text="${p.detalle == 'ALMUERZO'} ? #{admin.availability.detalle.almuerzo} : (${p.detalle == 'SIN_MARCAR'} ? #{admin.availability.detalle.sinMarcar} : ${p.detalle})">Motivo</small>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="avail-empty-note" th:if="${diaFiltro != null and diaFiltro != '' and (horaFiltro == null or horaFiltro == '')}">
+            <svg th:replace="~{layout/fragments :: icon('bell','ico-lg')}"></svg>
+            <div>
+                <p th:text="#{admin.availability.filter.hourPlaceholder}">Elige tambien una hora</p>
+            </div>
+        </div>
+
+        <!-- ===================== Vista 2: directorio general ===================== -->
+        <section class="panel" th:if="${diaFiltro == null or diaFiltro == ''}">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('users','')}"></svg>
+                    <span th:text="#{admin.availability.directory.title}">Base de datos maestra</span>
+                </h3>
+            </div>
+            <div class="panel-body panel-body--flush" style="overflow-x:auto">
+                <table class="data">
+                    <thead>
+                    <tr>
+                        <th th:text="#{common.user}">Usuario</th>
+                        <th th:text="#{common.role}">Rol</th>
+                        <th th:text="#{register.email}">Correo</th>
+                        <th style="text-align:right" th:text="#{admin.availability.inspect}">Inspeccion</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="user : ${usuarios}">
+                        <td>
+                            <div class="flex gap" style="align-items:center">
+                                <span class="avatar" th:classappend="'avatar--' + ${#strings.toLowerCase(user.role)}"
+                                      style="width:32px;height:32px;font-size:.85rem" th:text="${user.initial}">A</span>
+                                <span th:text="${user.fullName}">Nombre</span>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-role" th:classappend="'badge-role--' + ${#strings.toLowerCase(user.role)}"
+                                  th:text="#{'role.' + ${user.role}}">Rol</span></td>
+                        <td th:text="${user.email}">correo</td>
+                        <td style="text-align:right">
+                            <a th:href="@{/admin/disponibilidad/inspeccionar/{id}(id=${user.id})}"
+                               class="btn btn-outline btn-sm" th:text="#{admin.availability.inspect}">Ver matriz</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

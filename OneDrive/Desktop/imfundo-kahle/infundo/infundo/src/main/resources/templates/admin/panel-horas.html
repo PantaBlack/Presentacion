@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.activities.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('actividades')}"></aside>
+
+    <main class="content content--admin">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('clipboard','ico-sm')}"></svg>
+                    <span th:text="#{admin.activities.eyebrow}">Equipo</span>
+                </span>
+                <h1 th:text="#{admin.activities.title}">Actividades y horas</h1>
+                <p th:text="#{admin.activities.subtitle}">Asigna tareas y controla las horas del equipo en tiempo real.</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b id="kpiTotalActividades">0</b>
+                    <span th:text="#{admin.activities.kpi.count}">Actividades</span>
+                </div>
+                <div class="head-stat">
+                    <b id="kpiTotalHoras">0</b>
+                    <span th:text="#{admin.activities.kpi.hours}">Horas asignadas</span>
+                </div>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <div class="flex-between wrap mb-2">
+            <span class="live-badge">
+                <span class="dot"></span>
+                <span th:text="#{admin.activities.live}">Sincronizacion activa</span>
+            </span>
+            <span class="chip chip--warn">
+                <span id="kpiPendientes">0</span>&nbsp;<span th:text="#{act.status.pending}">Pendientes</span>
+            </span>
+        </div>
+
+        <!-- ===================== Nueva asignacion ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('plus','')}"></svg>
+                    <span th:text="#{admin.activities.new.title}">Nueva asignacion</span>
+                    <span class="panel-sub" th:text="#{admin.activities.new.sub}">Elige a alguien y toca sus horas disponibles</span>
+                </h3>
+            </div>
+            <div class="panel-body">
+                <form id="formularioAsignacion">
+                    <div class="grid grid-2">
+                        <div class="form-group" style="margin:0">
+                            <label th:text="#{admin.activities.form.collaborator}">Colaborador registrado</label>
+                            <select id="inputNombre" class="form-control" required>
+                                <option value="" disabled selected th:text="#{admin.activities.form.collaborator.placeholder}">Selecciona un colaborador...</option>
+                                <!-- Agrupado por rol: mas facil de encontrar a alguien que una lista plana. -->
+                                <optgroup th:label="#{stats.teachers}">
+                                    <option th:each="colab : ${colaboradores}" th:if="${colab.role.name() == 'TEACHER'}"
+                                            th:value="${colab.fullName}" th:attr="data-id=${colab.id},data-rol='Profesor'"
+                                            th:text="${colab.fullName}">Nombre</option>
+                                </optgroup>
+                                <optgroup th:label="#{stats.students}">
+                                    <option th:each="colab : ${colaboradores}" th:if="${colab.role.name() == 'STUDENT'}"
+                                            th:value="${colab.fullName}" th:attr="data-id=${colab.id},data-rol='Alumno'"
+                                            th:text="${colab.fullName}">Nombre</option>
+                                </optgroup>
+                                <optgroup th:label="#{stats.practicantes}">
+                                    <option th:each="colab : ${colaboradores}" th:if="${colab.role.name() == 'PRACTICANTE'}"
+                                            th:value="${colab.fullName}" th:attr="data-id=${colab.id},data-rol='Practicante'"
+                                            th:text="${colab.fullName}">Nombre</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin:0">
+                            <label th:text="#{admin.activities.form.task}">Descripcion de la tarea</label>
+                            <input type="text" id="inputTarea" class="form-control" th:placeholder="#{admin.activities.form.task.placeholder}" required/>
+                        </div>
+                    </div>
+
+                    <!-- Cuadricula de disponibilidad de la persona elegida: se llena por AJAX -->
+                    <div class="mt-2" id="dispoWrap">
+                        <div class="empty" id="dispoPlaceholder">
+                            <div class="empty-ico"><svg th:replace="~{layout/fragments :: icon('clock','ico-lg')}"></svg></div>
+                            <p th:text="#{admin.activities.dispo.placeholder}">Elige un colaborador para ver su disponibilidad</p>
+                        </div>
+                        <div id="dispoGridContainer" hidden>
+                            <div class="flex-between wrap mb-1" style="align-items:center">
+                                <div class="flex gap wrap">
+                                    <span class="chip chip--primary" th:text="#{avail.presencial}">Presencial</span>
+                                    <span class="chip chip--lang" th:text="#{avail.virtual}">Virtual</span>
+                                    <span class="chip chip--warn" th:text="#{avail.almuerzo}">Almuerzo</span>
+                                </div>
+                                <small class="text-muted" th:text="#{admin.activities.dispo.hint}">Toca una hora para empezar; toca otra del mismo dia para ampliar el rango.</small>
+                            </div>
+                            <div style="overflow-x:auto">
+                                <table class="avail-grid" id="dispoGrid"></table>
+                            </div>
+                            <div class="mt-2" id="seleccionResumen"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block mt-2" id="btnGuardar" disabled th:text="#{admin.activities.form.submit}">
+                        Guardar asignacion
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- ===================== Horas por colaborador ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('chart','')}"></svg>
+                    <span th:text="#{admin.activities.summary.title}">Horas por colaborador</span>
+                </h3>
+            </div>
+            <div class="panel-body panel-body--flush" id="listaResumenHoras">
+                <div class="empty">
+                    <p th:text="#{common.loading}">Cargando...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Actividades registradas ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg>
+                    <span th:text="#{admin.activities.table.title}">Actividades registradas</span>
+                </h3>
+            </div>
+            <div class="panel-body panel-body--flush" style="overflow-x:auto">
+                <table class="data">
+                    <thead>
+                    <tr>
+                        <th th:text="#{admin.activities.col.collaborator}">Colaborador</th>
+                        <th th:text="#{admin.activities.col.role}">Rol</th>
+                        <th th:text="#{common.time}">Horario</th>
+                        <th th:text="#{admin.activities.col.task}">Actividad</th>
+                        <th style="text-align:center" th:text="#{admin.activities.col.hours}">Horas</th>
+                        <th th:text="#{common.status}">Estado</th>
+                        <th th:text="#{common.actions}">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody id="cuerpoTablaActividades">
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:30px" th:text="#{common.loading}">Cargando...</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="toast-stack" id="toastContainer"></div>
+
+<script th:inline="javascript">
+    const API_BASE_URL = '/admin/actividades/api';
+    const TIEMPO_REFRESCO_MS = 3500;
+
+    // Token CSRF (inyectado por el fragmento head): obligatorio en toda peticion que modifique datos.
+    const CSRF_HEADER = document.querySelector('meta[name="_csrf_header"]')?.content;
+    const CSRF_TOKEN = document.querySelector('meta[name="_csrf"]')?.content;
+    function csrfHeaders(extra = {}) {
+        return CSRF_HEADER ? { ...extra, [CSRF_HEADER]: CSRF_TOKEN } : extra;
+    }
+
+    const TXT = {
+        pending: /*[[#{act.status.pending}]]*/ 'Pendiente',
+        inprogress: /*[[#{act.status.inprogress}]]*/ 'En curso',
+        done: /*[[#{act.status.done}]]*/ 'Completada',
+        none: /*[[#{admin.activities.empty}]]*/ 'No hay actividades registradas.',
+        noMetrics: /*[[#{admin.activities.summary.empty}]]*/ 'Sin metricas todavia.',
+        confirmDelete: /*[[#{admin.activities.confirmDelete}]]*/ 'Confirmas la eliminacion permanente de este registro?',
+        savedOk: /*[[#{admin.activities.saved}]]*/ 'Actividad registrada correctamente.',
+        saveError: /*[[#{admin.activities.saveError}]]*/ 'No se pudo registrar en el servidor.',
+        connError: /*[[#{admin.activities.connError}]]*/ 'Fallo de conexion con el servidor.',
+        statusUpdated: /*[[#{admin.activities.statusUpdated}]]*/ 'Estado actualizado a:',
+        updateError: /*[[#{admin.activities.updateError}]]*/ 'No se pudo actualizar.',
+        deleted: /*[[#{admin.activities.deleted}]]*/ 'Registro eliminado.',
+        deleteError: /*[[#{admin.activities.deleteError}]]*/ 'El servidor rechazo la eliminacion.',
+        options: /*[[#{admin.activities.options}]]*/ 'Opciones...',
+        markPending: /*[[#{admin.activities.markPending}]]*/ 'Marcar pendiente',
+        markInProgress: /*[[#{admin.activities.markInProgress}]]*/ 'Marcar en curso',
+        markDone: /*[[#{admin.activities.markDone}]]*/ 'Marcar completada',
+        delete: /*[[#{common.delete}]]*/ 'Eliminar',
+        hrs: /*[[#{admin.activities.hrsAbbrev}]]*/ 'hrs',
+        selection: /*[[#{admin.activities.dispo.selection}]]*/ 'Seleccion:',
+        selectionEmpty: /*[[#{admin.activities.dispo.selectionEmpty}]]*/ 'Todavia no has tocado ninguna hora.',
+        dispoError: /*[[#{admin.activities.dispo.error}]]*/ 'No se pudo cargar su disponibilidad.'
+    };
+
+    // Mismos dias/horas que maneja HorarioService en el servidor (ver "Mi disponibilidad").
+    const DIAS = ['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES'];
+    const HORAS = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
+    const DIA_LABEL = {
+        LUNES: /*[[#{day.LUNES}]]*/ 'Lunes',
+        MARTES: /*[[#{day.MARTES}]]*/ 'Martes',
+        MIERCOLES: /*[[#{day.MIERCOLES}]]*/ 'Miercoles',
+        JUEVES: /*[[#{day.JUEVES}]]*/ 'Jueves',
+        VIERNES: /*[[#{day.VIERNES}]]*/ 'Viernes'
+    };
+
+    const PENDIENTE = 'Pendiente', EN_CURSO = 'En curso', COMPLETADA = 'Completada';
+
+    const formulario = document.getElementById('formularioAsignacion');
+    const cuerpoTabla = document.getElementById('cuerpoTablaActividades');
+    const listaResumen = document.getElementById('listaResumenHoras');
+    const btnGuardar = document.getElementById('btnGuardar');
+    const inputNombre = document.getElementById('inputNombre');
+    const inputTarea = document.getElementById('inputTarea');
+    const dispoPlaceholder = document.getElementById('dispoPlaceholder');
+    const dispoGridContainer = document.getElementById('dispoGridContainer');
+    const dispoGrid = document.getElementById('dispoGrid');
+    const seleccionResumenEl = document.getElementById('seleccionResumen');
+
+    /** Seleccion actual del admin en la cuadricula: { dia, inicioIdx, finIdx } o null. */
+    let seleccion = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        obtenerDatosDelServidor();
+        setInterval(obtenerDatosDelServidor, TIEMPO_REFRESCO_MS);
+    });
+
+    inputNombre.addEventListener('change', cargarDisponibilidadSeleccionada);
+    inputTarea.addEventListener('input', actualizarEstadoBoton);
+
+    async function cargarDisponibilidadSeleccionada() {
+        seleccion = null;
+        const opcion = inputNombre.options[inputNombre.selectedIndex];
+        const userId = opcion?.getAttribute('data-id');
+        if (!userId) {
+            dispoGridContainer.hidden = true;
+            dispoPlaceholder.hidden = false;
+            actualizarEstadoBoton();
+            return;
+        }
+        try {
+            const resp = await fetch(`${API_BASE_URL}/disponibilidad/${userId}`);
+            if (!resp.ok) throw new Error('http ' + resp.status);
+            const mapa = await resp.json();
+            renderizarDisponibilidad(mapa);
+            dispoPlaceholder.hidden = true;
+            dispoGridContainer.hidden = false;
+        } catch (error) {
+            dispoGridContainer.hidden = true;
+            dispoPlaceholder.hidden = false;
+            mostrarAlerta(TXT.dispoError, 'error');
+        }
+        actualizarResumenSeleccion();
+        actualizarEstadoBoton();
+    }
+
+    function renderizarDisponibilidad(mapa) {
+        let html = '<thead><tr><th></th>';
+        DIAS.forEach(d => { html += `<th>${DIA_LABEL[d]}</th>`; });
+        html += '</tr></thead><tbody>';
+        HORAS.forEach((hora, horaIdx) => {
+            html += `<tr><th class="avail-hour-head">${hora}</th>`;
+            DIAS.forEach(dia => {
+                const modalidad = (mapa[dia] && mapa[dia][hora]) || 'LIBRE';
+                const claseModalidad = 'avail-cell--' + modalidad.toLowerCase();
+                const letra = modalidad === 'PRESENCIAL' ? '\u{1F3EB}' : (modalidad === 'VIRTUAL' ? '\u{1F4BB}' : (modalidad === 'ALMUERZO' ? '\u{1F374}' : (modalidad === 'OCUPADO' ? '\u{1F6AB}' : '')));
+                // El almuerzo (13:00) es obligatorio para todos: no se puede asignar una tarea ahi.
+                const bloqueada = hora === '13:00';
+                const claseExtra = bloqueada ? ' avail-cell--locked' : '';
+                const disabledAttr = bloqueada ? 'disabled' : '';
+                html += `<td><button type="button" class="avail-cell ${claseModalidad}${claseExtra}" ${disabledAttr} data-dia="${dia}" data-hora-idx="${horaIdx}">${letra}</button></td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody>';
+        dispoGrid.innerHTML = html;
+
+        dispoGrid.querySelectorAll('.avail-cell').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dia = btn.dataset.dia;
+                const idx = parseInt(btn.dataset.horaIdx, 10);
+                if (!seleccion || seleccion.dia !== dia) {
+                    seleccion = { dia, inicioIdx: idx, finIdx: idx };
+                } else if (seleccion.inicioIdx === idx && seleccion.finIdx === idx) {
+                    seleccion = null; // volver a tocar la misma celda: deseleccionar
+                } else if (idx >= seleccion.inicioIdx) {
+                    seleccion.finIdx = idx;
+                } else {
+                    seleccion.inicioIdx = idx;
+                }
+                pintarSeleccion();
+                actualizarResumenSeleccion();
+                actualizarEstadoBoton();
+            });
+        });
+        pintarSeleccion();
+    }
+
+    function pintarSeleccion() {
+        dispoGrid.querySelectorAll('.avail-cell').forEach(btn => {
+            const idx = parseInt(btn.dataset.horaIdx, 10);
+            const enSeleccion = seleccion && btn.dataset.dia === seleccion.dia
+                    && idx >= seleccion.inicioIdx && idx <= seleccion.finIdx;
+            btn.classList.toggle('avail-cell--selected', !!enSeleccion);
+        });
+    }
+
+    /** Hora de fin del rango elegido (la hora siguiente a la ultima celda tocada). */
+    function horaFinDeSeleccion() {
+        const siguiente = HORAS[seleccion.finIdx + 1];
+        if (siguiente) return siguiente;
+        const [h, m] = HORAS[seleccion.finIdx].split(':').map(Number);
+        return String(h + 1).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+
+    function actualizarResumenSeleccion() {
+        if (!seleccion) {
+            seleccionResumenEl.innerHTML = `<p class="text-muted" style="margin:0">${TXT.selectionEmpty}</p>`;
+            return;
+        }
+        const horas = seleccion.finIdx - seleccion.inicioIdx + 1;
+        const rango = `${HORAS[seleccion.inicioIdx]} - ${horaFinDeSeleccion()}`;
+        seleccionResumenEl.innerHTML = `
+            <span class="chip chip--primary">${TXT.selection} ${DIA_LABEL[seleccion.dia]}, ${rango} (${horas}h)</span>
+        `;
+    }
+
+    function actualizarEstadoBoton() {
+        const listo = !!inputNombre.value && !!seleccion && inputTarea.value.trim().length > 0;
+        btnGuardar.disabled = !listo;
+    }
+
+    function mostrarAlerta(mensaje, tipo = 'success') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${tipo} show`;
+        toast.textContent = mensaje;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    formulario.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!inputNombre.value || !seleccion || !inputTarea.value.trim()) return;
+        btnGuardar.disabled = true;
+
+        const opcionSeleccionada = inputNombre.options[inputNombre.selectedIndex];
+        const payload = {
+            nombreAsignado: inputNombre.value,
+            usuarioId: Number(opcionSeleccionada.getAttribute('data-id')),
+            rol: opcionSeleccionada.getAttribute('data-rol'),
+            diaSemana: seleccion.dia,
+            horasPlanificadas: seleccion.finIdx - seleccion.inicioIdx + 1,
+            rangoHorario: `${HORAS[seleccion.inicioIdx]} - ${horaFinDeSeleccion()}`,
+            tareaDetalle: inputTarea.value.trim(),
+            estadoActual: PENDIENTE
+        };
+
+        try {
+            const respuesta = await fetch(`${API_BASE_URL}/crear`, {
+                method: 'POST',
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify(payload)
+            });
+            if (respuesta.ok) {
+                formulario.reset();
+                seleccion = null;
+                dispoGridContainer.hidden = true;
+                dispoPlaceholder.hidden = false;
+                mostrarAlerta(TXT.savedOk, 'success');
+                obtenerDatosDelServidor();
+            } else {
+                mostrarAlerta(TXT.saveError, 'error');
+            }
+        } catch (error) {
+            mostrarAlerta(TXT.connError, 'error');
+        } finally {
+            actualizarEstadoBoton();
+        }
+    });
+
+    async function obtenerDatosDelServidor() {
+        try {
+            const respuesta = await fetch(`${API_BASE_URL}/listar`);
+            if (respuesta.ok) {
+                const datos = await respuesta.json();
+                construirTabla(datos);
+                construirResumenHoras(datos);
+                actualizarKPIs(datos);
+            }
+        } catch (error) {
+            console.error('Fallo al sincronizar datos', error);
+        }
+    }
+
+    function actualizarKPIs(lista) {
+        document.getElementById('kpiTotalActividades').textContent = lista.length;
+        document.getElementById('kpiTotalHoras').textContent = lista.reduce((s, a) => s + a.horasPlanificadas, 0);
+        document.getElementById('kpiPendientes').textContent = lista.filter(a => a.estadoActual === PENDIENTE).length;
+    }
+
+    function estadoChipClass(estado) {
+        if (estado === EN_CURSO) return 'chip--primary';
+        if (estado === COMPLETADA) return 'chip--success';
+        return 'chip--warn';
+    }
+
+    function rolChipClass(rol) {
+        if (rol === 'Profesor') return 'chip--role-teacher';
+        if (rol === 'Alumno') return 'chip--role-student';
+        if (rol === 'Practicante') return 'chip--role-practicante';
+        return 'chip';
+    }
+
+    function rolMarkClass(rol) {
+        if (rol === 'Profesor') return 'row-mark--teacher';
+        if (rol === 'Alumno') return 'row-mark--student';
+        if (rol === 'Practicante') return 'row-mark--practicante';
+        return '';
+    }
+
+    function construirTabla(listaActividades) {
+        cuerpoTabla.innerHTML = '';
+
+        if (listaActividades.length === 0) {
+            cuerpoTabla.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:36px;color:var(--gray)">${TXT.none}</td></tr>`;
+            return;
+        }
+
+        listaActividades.forEach(act => {
+            const rolChip = rolChipClass(act.rol);
+            const estadoChip = estadoChipClass(act.estadoActual);
+
+            const dia = act.diaSemana && DIA_LABEL[act.diaSemana] ? DIA_LABEL[act.diaSemana] + ' &middot; ' : '';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${escapeHtml(act.nombreAsignado)}</strong></td>
+                <td><span class="chip ${rolChip}">${escapeHtml(act.rol)}</span></td>
+                <td>${dia}${escapeHtml(act.rangoHorario)}</td>
+                <td>${escapeHtml(act.tareaDetalle)}</td>
+                <td style="text-align:center;font-weight:700">${act.horasPlanificadas}</td>
+                <td><span class="chip ${estadoChip}">${escapeHtml(act.estadoActual)}</span></td>
+                <td>
+                    <select class="action-select" onchange="gestionarAccion(this, ${act.id})">
+                        <option value="">${TXT.options}</option>
+                        <option value="${PENDIENTE}" ${act.estadoActual === PENDIENTE ? 'disabled' : ''}>${TXT.markPending}</option>
+                        <option value="${EN_CURSO}" ${act.estadoActual === EN_CURSO ? 'disabled' : ''}>${TXT.markInProgress}</option>
+                        <option value="${COMPLETADA}" ${act.estadoActual === COMPLETADA ? 'disabled' : ''}>${TXT.markDone}</option>
+                        <option value="ELIMINAR">${TXT.delete}</option>
+                    </select>
+                </td>
+            `;
+            cuerpoTabla.appendChild(tr);
+        });
+    }
+
+    function construirResumenHoras(listaActividades) {
+        const agrupacion = {};
+        listaActividades.forEach(act => {
+            if (!agrupacion[act.nombreAsignado]) agrupacion[act.nombreAsignado] = { horas: 0, rol: act.rol };
+            agrupacion[act.nombreAsignado].horas += act.horasPlanificadas;
+        });
+        const nombres = Object.keys(agrupacion).sort();
+
+        if (nombres.length === 0) {
+            listaResumen.innerHTML = `<div class="empty"><p>${TXT.noMetrics}</p></div>`;
+            return;
+        }
+
+        listaResumen.innerHTML = nombres.map(nombre => `
+            <div class="list-row">
+                <span class="row-mark ${rolMarkClass(agrupacion[nombre].rol)}">${iniciales(nombre)}</span>
+                <div class="row-main"><strong>${escapeHtml(nombre)}</strong></div>
+                <div class="row-side"><span class="chip ${rolChipClass(agrupacion[nombre].rol)}">${agrupacion[nombre].horas} ${TXT.hrs}</span></div>
+            </div>
+        `).join('');
+    }
+
+    function iniciales(nombreCompleto) {
+        return nombreCompleto.split(' ').filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text ?? '';
+        return div.innerHTML;
+    }
+
+    function gestionarAccion(selectElement, idActividad) {
+        const accion = selectElement.value;
+        if (!accion) return;
+        selectElement.value = '';
+
+        if (accion === 'ELIMINAR') {
+            ejecutarEliminacion(idActividad);
+        } else {
+            ejecutarCambioEstado(idActividad, accion);
+        }
+    }
+
+    async function ejecutarCambioEstado(idActividad, nuevoEstado) {
+        try {
+            const respuesta = await fetch(`${API_BASE_URL}/actualizar-estado/${idActividad}`, {
+                method: 'PUT',
+                headers: csrfHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (respuesta.ok) {
+                mostrarAlerta(`${TXT.statusUpdated} ${nuevoEstado}`, 'success');
+                obtenerDatosDelServidor();
+            } else {
+                mostrarAlerta(TXT.updateError, 'error');
+            }
+        } catch (error) {
+            mostrarAlerta(TXT.connError, 'error');
+        }
+    }
+
+    async function ejecutarEliminacion(idActividad) {
+        if (!confirm(TXT.confirmDelete)) return;
+        try {
+            const respuesta = await fetch(`${API_BASE_URL}/eliminar/${idActividad}`, {
+                method: 'DELETE',
+                headers: csrfHeaders()
+            });
+            if (respuesta.ok) {
+                mostrarAlerta(TXT.deleted, 'success');
+                obtenerDatosDelServidor();
+            } else {
+                mostrarAlerta(TXT.deleteError, 'error');
+            }
+        } catch (error) {
+            mostrarAlerta(TXT.connError, 'error');
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<!-- ============================================================
+     Fragmentos reutilizables del sistema:
+       head, marca, iconos, navbars, sidebars, cabeceras y avisos.
+     ============================================================ -->
+
+<!-- HEAD comun -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="${title} + ' | ' + #{app.name}">Viva Idiomas</title>
+    <!-- Token CSRF para peticiones fetch()/AJAX propias (los <form> de Thymeleaf ya lo incluyen solos) -->
+    <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"/>
+    <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+
+<body>
+
+<!-- ============================================================
+     Iconos de linea. Un unico sprite: heredan color y grosor
+     del CSS (.ico), asi que sirven en sidebar, KPIs y botones.
+     Uso: <svg th:replace="~{layout/fragments :: icon('users','')}"></svg>
+     ============================================================ -->
+<svg th:fragment="icon(name, cls)" th:class="'ico ' + ${cls}" viewBox="0 0 24 24" aria-hidden="true"
+     xmlns="http://www.w3.org/2000/svg">
+    <th:block th:switch="${name}">
+        <g th:case="'grid'">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+        </g>
+        <g th:case="'file'">
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>
+            <path d="M9 13h6M9 17h4"/>
+        </g>
+        <g th:case="'calendar'">
+            <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+            <circle cx="8.5" cy="14.5" r="1"/><circle cx="12" cy="14.5" r="1"/>
+        </g>
+        <g th:case="'book'">
+            <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h13"/>
+        </g>
+        <g th:case="'users'">
+            <path d="M16 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20"/><circle cx="9.5" cy="7" r="3.2"/>
+            <path d="M21 20v-1.5a4 4 0 0 0-3-3.87M16.5 4.2a3.2 3.2 0 0 1 0 5.6"/>
+        </g>
+        <g th:case="'clipboard'">
+            <rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/>
+            <path d="M9 12h6M9 16h4"/>
+        </g>
+        <g th:case="'clock'">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>
+        </g>
+        <g th:case="'user'">
+            <circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>
+        </g>
+        <g th:case="'graduation'">
+            <path d="M2.5 8.5 12 4l9.5 4.5L12 13z"/><path d="M6.5 10.8V16c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3v-5.2"/>
+            <path d="M21.5 8.5V14"/>
+        </g>
+        <g th:case="'check'">
+            <circle cx="12" cy="12" r="9"/><path d="m8.5 12.2 2.4 2.4 4.6-4.9"/>
+        </g>
+        <g th:case="'arrow'">
+            <path d="M5 12h13M13 6.5 18.5 12 13 17.5"/>
+        </g>
+        <g th:case="'plus'">
+            <circle cx="12" cy="12" r="9"/><path d="M12 8.2v7.6M8.2 12h7.6"/>
+        </g>
+        <g th:case="'inbox'">
+            <path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5.2 5.5 3 13v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5l-2.2-7.5A2 2 0 0 0 16.9 4H7.1a2 2 0 0 0-1.9 1.5z"/>
+        </g>
+        <g th:case="'chart'">
+            <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>
+        </g>
+        <g th:case="'trend'">
+            <path d="M3 16.5 9 10l4 4 7.5-7.5"/><path d="M15.5 6.5H21v5.5"/>
+        </g>
+        <g th:case="'globe'">
+            <circle cx="12" cy="12" r="9"/><path d="M3 12h18"/>
+            <path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/>
+        </g>
+        <g th:case="'star'">
+            <path d="m12 3.6 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.8l5.9-.8z"/>
+        </g>
+        <g th:case="'bell'">
+            <path d="M18 15V10a6 6 0 1 0-12 0v5l-1.5 3h15z"/><path d="M10 21h4"/>
+        </g>
+        <g th:case="'logout'">
+            <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 8 6 12l4 4M6 12h9"/>
+        </g>
+        <g th:case="'target'">
+            <circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>
+        </g>
+        <g th:case="'timer'">
+            <path d="M10 2h4M12 2v3"/><circle cx="12" cy="14" r="8"/><path d="M12 14V10"/>
+        </g>
+        <g th:case="'pencil'">
+            <path d="M4 20.5h3.2L18.8 8.9a2.2 2.2 0 0 0 0-3.1L18.2 5a2.2 2.2 0 0 0-3.1 0L3.5 16.5v4z"/>
+            <path d="M13.5 6.6l3.9 3.9"/>
+        </g>
+        <g th:case="*">
+            <circle cx="12" cy="12" r="9"/>
+        </g>
+    </th:block>
+</svg>
+
+<!-- Marca "Viva Idiomas": icono vectorial reutilizable (sin dependencias externas) -->
+<span th:fragment="logomark" class="logo-mark" aria-hidden="true">
+    <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="24" cy="24" r="22" fill="#fff"/>
+        <ellipse cx="24" cy="24" rx="18" ry="8.5" fill="none" stroke="#1E3A6E" stroke-width="3"
+                 transform="rotate(-22 24 24)"/>
+        <ellipse cx="24" cy="24" rx="18" ry="8.5" fill="none" stroke="#1E3A6E" stroke-width="3"
+                 opacity=".35" transform="rotate(22 24 24)"/>
+        <circle cx="24" cy="24" r="5.5" fill="#F15A24"/>
+    </svg>
+</span>
+
+<!-- Marca completa (logo + subtitulo), usada en navbars -->
+<a th:fragment="brand" class="brand" th:href="@{/}">
+    <img class="brand-logo" th:src="@{/img/logo/viva.jpeg}" alt="Viva Idiomas" />
+    <span class="brand-text">
+        <span class="subtitle" th:text="#{app.subtitle}">Centro de Idiomas</span>
+    </span>
+</a>
+
+<!-- Selector de idioma (reutilizable) -->
+<div th:fragment="langswitch" class="lang-switch">
+    <a th:href="@{''(lang='es')}" th:classappend="${#locale.language == 'es'} ? 'active'">ES</a>
+    <a th:href="@{''(lang='fr')}" th:classappend="${#locale.language == 'fr'} ? 'active'">FR</a>
+    <a th:href="@{''(lang='en')}" th:classappend="${#locale.language == 'en'} ? 'active'">EN</a>
+</div>
+
+<!-- Navbar publica (landing / auth) -->
+<nav th:fragment="topbar" class="navbar">
+    <a th:replace="~{layout/fragments :: brand}"></a>
+    <input type="checkbox" id="navToggle" class="nav-toggle-check"/>
+    <label for="navToggle" class="nav-toggle" aria-label="Menu">&#9776;</label>
+    <div class="navbar-links">
+        <div class="navbar-menu">
+            <a th:href="@{/}" th:text="#{nav.home}">Inicio</a>
+            <a th:href="@{/}+'#libros'" th:text="#{nav.books}">Libros</a>
+            <a th:href="@{/}+'#cursos'" th:text="#{nav.courses}">Cursos</a>
+            <a th:href="@{/}+'#metodologia'" th:text="#{nav.methodology}">Metodologia</a>
+            <a th:href="@{/}+'#precios'" th:text="#{nav.pricing}">Precios</a>
+            <a th:href="@{/}+'#testimonios'" th:text="#{nav.testimonials}">Testimonios</a>
+        </div>
+        <div th:replace="~{layout/fragments :: langswitch}"></div>
+        <a class="btn btn-outline btn-sm" th:href="@{/auth/login}" th:text="#{nav.login}">Iniciar sesion</a>
+        <a class="btn btn-primary btn-sm" th:href="@{/auth/register}" th:text="#{nav.register}">Registrarse</a>
+    </div>
+</nav>
+
+<!-- Navbar de portales (con menu de usuario) -->
+<nav th:fragment="appnav" class="navbar">
+    <a th:replace="~{layout/fragments :: brand}"></a>
+    <div class="navbar-links">
+        <div th:replace="~{layout/fragments :: langswitch}"></div>
+        <div class="user-menu" th:if="${currentUser != null}">
+            <!-- Se abre con clic (no con :hover): un menu que depende de mantener el mouse
+                 exactamente encima se cierra solo si el cursor se desvia un pixel al bajar
+                 hacia "Cerrar sesion". El checkbox oculto lo hace fiable y funciona igual
+                 con teclado o pantalla tactil. -->
+            <input type="checkbox" id="userMenuToggle" class="user-menu-toggle-check"/>
+            <label for="userMenuToggle" class="user-chip">
+                <div class="who">
+                    <b th:text="${currentUser.fullName}">Nombre</b>
+                    <small th:text="#{'role.' + ${currentUser.role}}">Rol</small>
+                </div>
+                <div class="avatar avatar-ring" th:classappend="'avatar-ring--' + ${#strings.toLowerCase(currentUser.role)}"
+                     th:text="${currentUser.initial}">A</div>
+            </label>
+            <div class="user-dropdown">
+                <div class="name" th:text="${currentUser.fullName}">Nombre</div>
+                <div class="role" th:text="${currentUser.email}">correo</div>
+                <a th:href="@{/auth/logout}">
+                    <span th:text="#{nav.logout}">Cerrar sesion</span>
+                </a>
+            </div>
+            <!-- Capa invisible: al hacer clic fuera del menu, cierra el checkbox. -->
+            <label for="userMenuToggle" class="user-menu-backdrop" aria-hidden="true"></label>
+        </div>
+    </div>
+</nav>
+
+<!-- Estado vacio reutilizable -->
+<div th:fragment="empty(text)" class="empty">
+    <div class="empty-ico">
+        <svg th:replace="~{layout/fragments :: icon('inbox','ico-lg')}"></svg>
+    </div>
+    <p th:text="${text}">Sin datos disponibles.</p>
+    <small th:text="#{empty.hint}">Cuando haya informacion aparecera aqui.</small>
+</div>
+
+<!-- Mensajes flash -->
+<div th:fragment="flash">
+    <div class="alert alert-success" th:if="${successKey}" th:text="#{${successKey}}">OK</div>
+    <div class="alert alert-danger" th:if="${errorKey}" th:text="#{${errorKey}}">Error</div>
+</div>
+
+<!-- ============================================================
+     Sidebar ADMIN
+     ============================================================ -->
+<aside th:fragment="adminSidebar(active)" class="sidebar sidebar--admin">
+    <div class="side-title" th:text="#{admin.portal}">Portal Admin</div>
+
+    <a th:href="@{/admin/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('grid','')}"></svg>
+        <span class="label" th:text="#{admin.menu.dashboard}">Panel</span>
+    </a>
+
+    <div class="side-group" th:text="#{side.group.academic}">Academico</div>
+    <a th:href="@{/admin/schedules}" th:classappend="${active == 'schedules'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+        <span class="label" th:text="#{admin.menu.schedules}">Horarios</span>
+    </a>
+    <a th:href="@{/admin/proposals}" th:classappend="${active == 'proposals'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('file','')}"></svg>
+        <span class="label" th:text="#{admin.menu.proposals}">Propuestas</span>
+    </a>
+    <a th:href="@{/admin/materials}" th:classappend="${active == 'materials'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('book','')}"></svg>
+        <span class="label" th:text="#{admin.menu.materials}">Materiales</span>
+    </a>
+
+    <div class="side-group" th:text="#{side.group.people}">Equipo</div>
+    <a th:href="@{/admin/users}" th:classappend="${active == 'users'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('users','')}"></svg>
+        <span class="label" th:text="#{admin.menu.users}">Usuarios</span>
+    </a>
+    <a th:href="@{/admin/actividades/panel}" th:classappend="${active == 'actividades'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg>
+        <span class="label" th:text="#{admin.menu.activities}">Actividades</span>
+    </a>
+    <a th:href="@{/admin/disponibilidad}" th:classappend="${active == 'disponibilidad'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('clock','')}"></svg>
+        <span class="label" th:text="#{admin.menu.availability}">Disponibilidad</span>
+    </a>
+    <a th:href="@{/admin/tiempo/reportes}" th:classappend="${active == 'tiempo'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('timer','')}"></svg>
+        <span class="label" th:text="#{admin.menu.timeReports}">Reportes de tiempo</span>
+    </a>
+
+    <div class="side-group" th:text="#{side.group.site}">Sitio publico</div>
+    <a th:href="@{/admin/contenido}" th:classappend="${active == 'contenido'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('globe','')}"></svg>
+        <span class="label" th:text="#{admin.menu.content}">Contenido del sitio</span>
+    </a>
+
+    <div class="side-foot">
+        <strong th:text="#{side.tip.title}">Consejo</strong>
+        <p th:text="#{side.tip.admin}">Revisa las propuestas pendientes cada semana.</p>
+        <a class="panel-link" th:href="@{/admin/proposals}">
+            <span th:text="#{admin.menu.proposals}">Propuestas</span>
+            <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+        </a>
+    </div>
+</aside>
+
+<!-- ============================================================
+     Sidebar PROFESOR
+     ============================================================ -->
+<aside th:fragment="teacherSidebar(active)" class="sidebar sidebar--teacher">
+    <div class="side-title" th:text="#{teacher.portal}">Portal Profesor</div>
+
+    <a th:href="@{/teacher/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('grid','')}"></svg>
+        <span class="label" th:text="#{teacher.menu.dashboard}">Panel</span>
+    </a>
+
+    <div class="side-group" th:text="#{side.group.teaching}">Docencia</div>
+    <a th:href="@{/teacher/schedules}" th:classappend="${active == 'schedules'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+        <span class="label" th:text="#{teacher.menu.schedules}">Mis horarios</span>
+    </a>
+    <a th:href="@{/teacher/materials}" th:classappend="${active == 'materials'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('book','')}"></svg>
+        <span class="label" th:text="#{teacher.menu.materials}">Mis materiales</span>
+    </a>
+    <a th:href="@{/mi-disponibilidad}" th:classappend="${active == 'disponibilidad'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('clock','')}"></svg>
+        <span class="label" th:text="#{menu.myAvailability}">Mi disponibilidad</span>
+    </a>
+    <a th:href="@{/mi-tiempo}" th:classappend="${active == 'tiempo'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('timer','')}"></svg>
+        <span class="label" th:text="#{menu.myTime}">Mi tiempo</span>
+    </a>
+
+    <div class="side-group" th:text="#{side.group.center}">Centro</div>
+    <a th:href="@{/teacher/dashboard}+'#actividades'" th:classappend="${active == 'actividades'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg>
+        <span class="label" th:text="#{menu.myActivities}">Mis actividades</span>
+        <span class="nav-badge" th:if="${pendingActivitiesCount != null and pendingActivitiesCount > 0}" th:text="${pendingActivitiesCount}">1</span>
+    </a>
+    <a th:href="@{/teacher/proposals}" th:classappend="${active == 'proposals'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('file','')}"></svg>
+        <span class="label" th:text="#{teacher.menu.proposals}">Mis propuestas</span>
+    </a>
+
+    <div class="side-foot">
+        <strong th:text="#{side.tip.title}">Consejo</strong>
+        <p th:text="#{side.tip.teacher}">Comparte material despues de cada clase.</p>
+        <a class="panel-link" th:href="@{/teacher/materials}">
+            <span th:text="#{teacher.materials.new}">Subir material</span>
+            <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+        </a>
+    </div>
+</aside>
+
+<!-- ============================================================
+     Sidebar ALUMNO
+     ============================================================ -->
+<aside th:fragment="studentSidebar(active)" class="sidebar sidebar--student">
+    <div class="side-title" th:text="#{student.portal}">Portal Alumno</div>
+
+    <a th:href="@{/student/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('grid','')}"></svg>
+        <span class="label" th:text="#{student.menu.dashboard}">Panel</span>
+    </a>
+
+    <div class="side-group" th:text="#{side.group.learning}">Aprendizaje</div>
+    <a th:href="@{/student/classes}" th:classappend="${active == 'classes'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('graduation','')}"></svg>
+        <span class="label" th:text="#{student.menu.classes}">Clases</span>
+    </a>
+    <a th:href="@{/student/materials}" th:classappend="${active == 'materials'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('book','')}"></svg>
+        <span class="label" th:text="#{student.menu.materials}">Materiales</span>
+    </a>
+    <a th:href="@{/mi-tiempo}" th:classappend="${active == 'tiempo'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('timer','')}"></svg>
+        <span class="label" th:text="#{menu.myTime}">Mi tiempo</span>
+    </a>
+
+    <div class="side-group" th:text="#{side.group.account}">Cuenta</div>
+    <a th:href="@{/student/dashboard}+'#actividades'" th:classappend="${active == 'actividades'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg>
+        <span class="label" th:text="#{menu.myActivities}">Mis actividades</span>
+        <span class="nav-badge" th:if="${pendingActivitiesCount != null and pendingActivitiesCount > 0}" th:text="${pendingActivitiesCount}">1</span>
+    </a>
+    <a th:href="@{/student/profile}" th:classappend="${active == 'profile'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('user','')}"></svg>
+        <span class="label" th:text="#{student.menu.profile}">Mi perfil</span>
+    </a>
+
+    <div class="side-foot">
+        <strong th:text="#{side.tip.title}">Consejo</strong>
+        <p th:text="#{side.tip.student}">Practica 15 minutos al dia con los materiales.</p>
+        <a class="panel-link" th:href="@{/student/classes}">
+            <span th:text="#{student.classes.title}">Clases disponibles</span>
+            <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}"></svg>
+        </a>
+    </div>
+</aside>
+
+<!-- ============================================================
+     Sidebar PRACTICANTE
+     ============================================================ -->
+<aside th:fragment="practicanteSidebar(active)" class="sidebar sidebar--practicante">
+    <div class="side-title" th:text="#{practicante.portal}">Portal Practicante</div>
+
+    <a th:href="@{/practicante/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('grid','')}"></svg>
+        <span class="label" th:text="#{practicante.menu.dashboard}">Mi panel</span>
+    </a>
+    <a th:href="@{/practicante/clases}" th:classappend="${active == 'clases'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('book','')}"></svg>
+        <span class="label" th:text="#{practicante.menu.clases}">Mis clases personalizadas</span>
+    </a>
+    <a th:href="@{/practicante/dashboard}+'#actividades'" th:classappend="${active == 'actividades'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('clipboard','')}"></svg>
+        <span class="label" th:text="#{practicante.menu.activities}">Mis actividades</span>
+        <span class="nav-badge" th:if="${pendingActivitiesCount != null and pendingActivitiesCount > 0}" th:text="${pendingActivitiesCount}">1</span>
+    </a>
+    <a th:href="@{/practicante/dashboard}+'#horas'" th:classappend="${active == 'horas'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('clock','')}"></svg>
+        <span class="label" th:text="#{practicante.menu.hours}">Mis horas</span>
+    </a>
+    <a th:href="@{/mi-disponibilidad}" th:classappend="${active == 'disponibilidad'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+        <span class="label" th:text="#{menu.myAvailability}">Mi disponibilidad</span>
+    </a>
+    <a th:href="@{/mi-tiempo}" th:classappend="${active == 'tiempo'} ? 'active'">
+        <svg th:replace="~{layout/fragments :: icon('timer','')}"></svg>
+        <span class="label" th:text="#{menu.myTime}">Mi tiempo</span>
+    </a>
+
+    <div class="side-foot">
+        <strong th:text="#{side.tip.title}">Consejo</strong>
+        <p th:text="#{side.tip.practicante}">Marca tus tareas al terminarlas para llevar el control de horas.</p>
+    </div>
+</aside>
+
+
+<!-- ============================================================
+     Confirmacion generica antes de enviar un formulario destructivo.
+     Cualquier <form data-confirm="mensaje"> pausa su envio y pide
+     confirmar; si el usuario cancela, el formulario no se envia.
+     Uso: <div th:replace="~{layout/fragments :: confirmScript}"></div>
+     ============================================================ -->
+<script th:fragment="confirmScript">
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                if (!confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+            });
+        });
+    });
+</script>
+
+<!-- ============================================================
+     Editor visual en linea: se autocontrola con th:if, asi que cualquier
+     pagina lo puede incluir siempre igual (sin repetir el chequeo de
+     modoEdicion en cada plantilla). Funciona sobre cualquier elemento con
+     data-ck (texto), data-img-ck (imagen) o data-bg-ck (fondo por CSS) que
+     encuentre en la pagina donde se incluya: no hace falta tocar este script
+     para que una pagina nueva sea editable, solo agregarle esos atributos.
+     Uso: <div th:replace="~{layout/fragments :: visualEditorOverlay}"></div>
+     ============================================================ -->
+<th:block th:fragment="visualEditorOverlay" th:if="${modoEdicion}">
+<div th:replace="~{layout/fragments :: confirmScript}"></div>
+<div class="ck-banner">
+    <span th:text="#{admin.contenido.visual.banner}">Modo edicion activo</span>
+    <a class="ck-exit-btn" th:href="@{/admin/contenido}" th:text="#{admin.contenido.visual.salir}">Salir</a>
+</div>
+
+<button type="button" class="ck-save-btn" id="ckSaveBtn">
+    <span class="ck-spinner" aria-hidden="true"></span>
+    <span id="ckSaveBtnLabel" th:text="#{admin.contenido.visual.guardar}">Guardar todos los cambios</span>
+</button>
+
+<div class="toast-stack" id="ckToastStack"></div>
+<input type="file" id="ckFileInput" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none"/>
+
+<script th:inline="javascript">
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.classList.add('ck-modo-edicion');
+
+    const CSRF_HEADER = document.querySelector('meta[name="_csrf_header"]')?.content;
+    const CSRF_TOKEN = document.querySelector('meta[name="_csrf"]')?.content;
+    const GUARDAR_URL = /*[[@{/admin/contenido/guardar-visual}]]*/ '/admin/contenido/guardar-visual';
+    const idiomaActual = /*[[${#locale.language}]]*/ 'es';
+
+    const TXT = {
+        guardar: /*[[#{admin.contenido.visual.guardar}]]*/ 'Guardar todos los cambios',
+        guardando: /*[[#{admin.contenido.visual.guardando}]]*/ 'Guardando...',
+        exito: /*[[#{admin.contenido.visual.exito}]]*/ 'Cambios publicados con exito',
+        error: /*[[#{admin.contenido.visual.error}]]*/ 'Error al guardar. Intenta de nuevo.',
+        cambiarImagen: /*[[#{admin.contenido.visual.cambiarImagen}]]*/ 'Cambiar imagen',
+        cambiarFondo: /*[[#{admin.contenido.visual.cambiarFondo}]]*/ 'Cambiar fondo',
+        sinCambios: /*[[#{admin.contenido.visual.sinCambios}]]*/ 'No hay cambios para guardar.',
+        imagenesRechazadas: /*[[#{admin.contenido.visual.imagenesRechazadas}]]*/ 'Algunas imagenes no se guardaron.',
+        confirmarSalir: /*[[#{admin.contenido.visual.confirmarSalir}]]*/ 'Tienes cambios sin guardar.'
+    };
+
+    const imagenesPendientes = new Map();
+    const textosModificados = new Set();
+    const saveBtn = document.getElementById('ckSaveBtn');
+
+    // El boton de guardar solo se activa cuando hay algo que guardar: asi el
+    // admin nunca se pregunta "¿ya guarde o no?" con un boton siempre encendido.
+    saveBtn.disabled = true;
+    function marcarCambioPendiente() {
+        saveBtn.disabled = false;
+    }
+
+    // Si intenta cerrar la pestaña o navegar con cambios sin guardar, el
+    // navegador le pregunta antes de perderlos.
+    window.addEventListener('beforeunload', (e) => {
+        if (textosModificados.size > 0 || imagenesPendientes.size > 0) {
+            e.preventDefault();
+            e.returnValue = TXT.confirmarSalir;
+            return TXT.confirmarSalir;
+        }
+    });
+
+    // ---- 1) Textos: contenteditable, con dashed-outline via CSS (.ck-editable:hover) ----
+    // Cada campo se edita en una sola linea (Enter no inserta salto de linea): asi
+    // evitamos que "textContent" pierda la separacion entre lineas al guardar, y
+    // que un admin sin experiencia rompa el diseño con un Enter accidental.
+    document.querySelectorAll('[data-ck]').forEach((el) => {
+        el.classList.add('ck-editable');
+        el.setAttribute('contenteditable', 'true');
+        el.setAttribute('spellcheck', 'false');
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+        });
+        el.addEventListener('input', () => {
+            const clave = el.getAttribute('data-ck');
+            textosModificados.add(clave);
+            el.classList.add('ck-cambiado');
+            marcarCambioPendiente();
+            // Si la misma clave aparece varias veces en la pagina (ej. un boton
+            // repetido en 3 tarjetas), mantenerlas sincronizadas mientras se escribe.
+            document.querySelectorAll('[data-ck="' + clave + '"]').forEach((otro) => {
+                if (otro !== el) otro.textContent = el.textContent;
+            });
+        });
+    });
+
+    // ---- 2) Imagenes: icono de camara superpuesto + preview inmediato (blob URL) ----
+    const fileInput = document.getElementById('ckFileInput');
+    let objetivoEnEdicion = null; // { tipo: 'img' } o { tipo: 'bg', elemento }
+
+    document.querySelectorAll('img[data-img-ck]').forEach((img) => {
+        const wrapper = img.parentElement;
+        wrapper.classList.add('ck-img-wrap');
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'ck-img-btn';
+        boton.title = TXT.cambiarImagen;
+        boton.setAttribute('aria-label', TXT.cambiarImagen);
+        boton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.6"/></svg>';
+        boton.addEventListener('click', () => {
+            objetivoEnEdicion = { tipo: 'img', clave: img.getAttribute('data-img-ck') };
+            fileInput.click();
+        });
+        wrapper.appendChild(boton);
+    });
+
+    // ---- 2b) Fondos editables (ej. la foto detras del hero): sin <img>, es un
+    // background-image por CSS, asi que el boton de cambiarlo queda fijo en
+    // una esquina de la seccion en vez de aparecer solo al pasar el mouse.
+    document.querySelectorAll('[data-bg-ck]').forEach((seccion) => {
+        const boton = document.createElement('button');
+        boton.type = 'button';
+        boton.className = 'ck-bg-btn';
+        boton.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.6"/></svg><span></span>';
+        boton.querySelector('span').textContent = TXT.cambiarFondo;
+        boton.addEventListener('click', () => {
+            objetivoEnEdicion = { tipo: 'bg', clave: seccion.getAttribute('data-bg-ck'), elemento: seccion };
+            fileInput.click();
+        });
+        seccion.prepend(boton);
+    });
+
+    fileInput.addEventListener('change', () => {
+        const archivo = fileInput.files && fileInput.files[0];
+        if (!archivo || !objetivoEnEdicion) { objetivoEnEdicion = null; return; }
+        const clave = objetivoEnEdicion.clave;
+        imagenesPendientes.set(clave, archivo);
+        const url = URL.createObjectURL(archivo);
+
+        if (objetivoEnEdicion.tipo === 'bg') {
+            const el = objetivoEnEdicion.elemento;
+            el.style.setProperty(el.dataset.bgVar, 'url(' + url + ')');
+            el.classList.add(el.dataset.bgClass);
+            el.querySelector('.ck-bg-btn')?.classList.add('ck-cambiado');
+        } else {
+            document.querySelectorAll('img[data-img-ck="' + clave + '"]').forEach((imgIgual) => {
+                imgIgual.src = url;
+                imgIgual.closest('.ck-img-wrap')?.classList.add('ck-cambiado');
+            });
+        }
+
+        marcarCambioPendiente();
+        fileInput.value = '';
+        objetivoEnEdicion = null;
+    });
+
+    // ---- 3) Toasts (mismo patron visual que el resto del panel admin) ----
+    function mostrarToast(mensaje, tipo) {
+        const stack = document.getElementById('ckToastStack');
+        const toast = document.createElement('div');
+        toast.className = 'toast toast--' + tipo + ' show';
+        toast.textContent = mensaje;
+        stack.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3200);
+    }
+
+    // ---- 4) Guardar todo en una sola peticion: JSON de textos + FormData de imagenes ----
+    const saveBtnLabel = document.getElementById('ckSaveBtnLabel');
+
+    saveBtn.addEventListener('click', async () => {
+        if (textosModificados.size === 0 && imagenesPendientes.size === 0) {
+            mostrarToast(TXT.sinCambios, 'success');
+            return;
+        }
+
+        const textos = {};
+        textosModificados.forEach((clave) => {
+            const el = document.querySelector('[data-ck="' + clave + '"]');
+            if (el) textos[clave] = el.textContent.trim();
+        });
+
+        const formData = new FormData();
+        formData.append('datos', JSON.stringify({ idioma: idiomaActual, textos: textos }));
+        imagenesPendientes.forEach((archivo, clave) => formData.append('img__' + clave, archivo));
+
+        saveBtn.disabled = true;
+        saveBtn.classList.add('ck-guardando');
+        saveBtnLabel.textContent = TXT.guardando;
+
+        try {
+            const headers = {};
+            if (CSRF_HEADER) headers[CSRF_HEADER] = CSRF_TOKEN;
+            const resp = await fetch(GUARDAR_URL, { method: 'POST', headers: headers, body: formData });
+            const data = await resp.json();
+            if (!resp.ok || !data.ok) throw new Error('save-failed');
+
+            mostrarToast(TXT.exito, 'success');
+            if (data.imagenesRechazadas > 0) {
+                mostrarToast(TXT.imagenesRechazadas, 'error');
+            }
+            textosModificados.clear();
+            imagenesPendientes.clear();
+            document.querySelectorAll('.ck-cambiado').forEach((el) => el.classList.remove('ck-cambiado'));
+            // Con todo guardado, el boton vuelve a apagarse hasta el proximo cambio real.
+            saveBtn.disabled = true;
+        } catch (e) {
+            mostrarToast(TXT.error, 'error');
+            saveBtn.disabled = false;
+        } finally {
+            saveBtn.classList.remove('ck-guardando');
+            saveBtnLabel.textContent = TXT.guardar;
+        }
+    });
+
+    // ---- 5) Zona de diseno libre: arrastrar y rotar elementos con el mouse/dedo ----
+    // Se guarda solo al soltar (no hace falta el boton "Guardar todos los cambios"):
+    // mover/rotar es un cambio estructural, igual que agregar o eliminar un elemento.
+    const csCanvas = document.getElementById('csCanvas');
+    if (csCanvas) {
+        const LIMITE_POS = 92;
+        const LIMITE_ROT = 45;
+
+        function guardarPosicionCs(item, rotacion) {
+            const id = item.getAttribute('data-cs-id');
+            const posX = parseFloat(item.style.left) || 0;
+            const posY = parseFloat(item.style.top) || 0;
+            const ancho = parseFloat(item.style.width) || 30;
+            const headers = { 'Content-Type': 'application/json' };
+            if (CSRF_HEADER) headers[CSRF_HEADER] = CSRF_TOKEN;
+            fetch('/admin/contenido/secciones/' + id + '/posicion', {
+                method: 'POST', headers: headers,
+                body: JSON.stringify({ posX: posX, posY: posY, rotacion: rotacion, ancho: ancho })
+            }).catch(() => mostrarToast(TXT.error, 'error'));
+        }
+
+        csCanvas.querySelectorAll('.cs-canvas-item').forEach((item) => {
+            let rotacionActual = parseFloat(item.getAttribute('data-rotacion')) || 0;
+            const dragHandle = item.querySelector('.cs-drag-handle');
+            const rotateHandle = item.querySelector('.cs-rotate-handle');
+
+            if (dragHandle) {
+                dragHandle.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    const rectCont = csCanvas.getBoundingClientRect();
+                    const startLeft = parseFloat(item.style.left) || 0;
+                    const startTop = parseFloat(item.style.top) || 0;
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const mover = (ev) => {
+                        const dxPct = ((ev.clientX - startX) / rectCont.width) * 100;
+                        const dyPct = ((ev.clientY - startY) / rectCont.height) * 100;
+                        item.style.left = Math.max(0, Math.min(LIMITE_POS, startLeft + dxPct)) + '%';
+                        item.style.top = Math.max(0, Math.min(LIMITE_POS, startTop + dyPct)) + '%';
+                    };
+                    const soltar = () => {
+                        document.removeEventListener('pointermove', mover);
+                        document.removeEventListener('pointerup', soltar);
+                        guardarPosicionCs(item, rotacionActual);
+                    };
+                    document.addEventListener('pointermove', mover);
+                    document.addEventListener('pointerup', soltar);
+                });
+            }
+
+            if (rotateHandle) {
+                rotateHandle.addEventListener('pointerdown', (e) => {
+                    e.preventDefault();
+                    const rotar = (ev) => {
+                        const rect = item.getBoundingClientRect();
+                        const cx = rect.left + rect.width / 2;
+                        const cy = rect.top + rect.height / 2;
+                        let angulo = Math.atan2(ev.clientY - cy, ev.clientX - cx) * (180 / Math.PI) + 90;
+                        angulo = Math.max(-LIMITE_ROT, Math.min(LIMITE_ROT, angulo));
+                        rotacionActual = angulo;
+                        item.style.transform = 'rotate(' + angulo + 'deg)';
+                    };
+                    const soltar = () => {
+                        document.removeEventListener('pointermove', rotar);
+                        document.removeEventListener('pointerup', soltar);
+                        guardarPosicionCs(item, rotacionActual);
+                    };
+                    document.addEventListener('pointermove', rotar);
+                    document.addEventListener('pointerup', soltar);
+                });
+            }
+        });
+    }
+});
+</script>
+</th:block>
+
+</body>
+</html>

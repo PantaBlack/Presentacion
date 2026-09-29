@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.tiempo.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('tiempo')}"></aside>
+
+    <main class="content content--admin">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('timer','ico-sm')}"></svg>
+                    <span th:text="#{admin.tiempo.eyebrow}">Equipo</span>
+                </span>
+                <h1 th:text="#{admin.tiempo.title}">Reportes de tiempo</h1>
+                <p th:text="#{admin.tiempo.subtitle}">Revisa y aprueba las horas semanales del equipo.</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b th:text="${countPendientes}">0</b>
+                    <span th:text="#{estadoReporte.PENDIENTE_REVISION}">Pendientes</span>
+                </div>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <section class="panel">
+            <div class="panel-body">
+                <form th:action="@{/admin/tiempo/reportes}" method="get" class="flex gap wrap" style="align-items:flex-end">
+                    <div class="form-group" style="margin:0;min-width:220px">
+                        <label th:text="#{admin.tiempo.filter.status}">Filtrar por estado</label>
+                        <select name="estado" class="form-control">
+                            <option value="" th:text="#{admin.tiempo.filter.all}">Todos</option>
+                            <option th:each="e : ${estados}" th:value="${e}" th:text="#{'estadoReporte.' + ${e}}"
+                                    th:selected="${estadoFiltro != null and estadoFiltro.name() == e.name()}">Estado</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" th:text="#{admin.tiempo.filter.status}">Filtrar</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div th:if="${reportes.isEmpty()}">
+                <div th:replace="~{layout/fragments :: empty(#{admin.tiempo.empty})}"></div>
+            </div>
+            <div class="panel-body panel-body--flush" th:if="${!reportes.isEmpty()}" style="overflow-x:auto">
+                <table class="data">
+                    <thead>
+                    <tr>
+                        <th th:text="#{admin.tiempo.col.colaborador}">Colaborador</th>
+                        <th th:text="#{admin.tiempo.col.semana}">Semana</th>
+                        <th th:text="#{admin.tiempo.col.sistema}">Horas sistema</th>
+                        <th th:text="#{admin.tiempo.col.estado}">Estado</th>
+                        <th th:text="#{admin.tiempo.col.actions}">Acciones</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="r : ${reportes}">
+                        <td>
+                            <div class="flex gap" style="align-items:center">
+                                <span class="avatar" th:classappend="'avatar--' + ${#strings.toLowerCase(r.colaborador.role)}"
+                                      style="width:32px;height:32px;font-size:.85rem" th:text="${r.colaborador.initial}">A</span>
+                                <span th:text="${r.colaborador.fullName}">Nombre</span>
+                            </div>
+                        </td>
+                        <td th:text="${#temporals.format(r.semanaInicio, 'dd/MM/yyyy')}">01/01/2026</td>
+                        <td th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(
+                                reporteSemanalService.minutosCronometradosSemana(r.colaborador, r.semanaInicio))}">0h 0m</td>
+                        <td>
+                            <span class="chip"
+                                  th:classappend="${r.estado.name() == 'PENDIENTE_REVISION'} ? 'chip--warn' : (${r.estado.name() == 'APROBADO'} ? 'chip--success' : '')"
+                                  th:text="#{'estadoReporte.' + ${r.estado.name()}}">Estado</span>
+                        </td>
+                        <td>
+                            <a th:href="@{/admin/tiempo/reportes/{id}(id=${r.id})}" class="btn btn-outline btn-sm" th:text="#{admin.tiempo.review}">Revisar</a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

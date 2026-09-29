@@ -1,0 +1,42 @@
+{
+  "properties": [
+    {
+      "name": "app.seed.admin-email",
+      "type": "java.lang.String",
+      "description": "Correo de la cuenta ADMIN creada al arrancar con la base de datos vacia. Se puede fijar con la variable de entorno ADMIN_EMAIL.",
+      "defaultValue": "admin@viva-idiomas.local"
+    },
+    {
+      "name": "app.seed.admin-password",
+      "type": "java.lang.String",
+      "description": "Contrasena de la cuenta ADMIN creada al arrancar. Definir siempre con la variable de entorno ADMIN_PASSWORD antes de desplegar en un servidor real."
+    },
+    {
+      "name": "app.seed.demo-password",
+      "type": "java.lang.String",
+      "description": "Contrasena compartida por las ~68 cuentas de demostracion (profesores, alumnos, practicantes). Se puede fijar con la variable de entorno SEED_PASSWORD.",
+      "defaultValue": "CambiaEsta#2026"
+    },
+    {
+      "name": "app.seed.demo-users-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Activa o desactiva la creacion de las cuentas de demostracion al arrancar. Se puede fijar con la variable de entorno SEED_DEMO_USERS.",
+      "defaultValue": true
+    },
+    {
+      "name": "app.mail.from",
+      "type": "java.lang.String",
+      "description": "Remitente que vera el usuario en el correo de recuperacion de contrasena. Se puede fijar con la variable de entorno MAIL_FROM (si no, usa MAIL_USERNAME)."
+    },
+    {
+      "name": "app.recaptcha.site-key",
+      "type": "java.lang.String",
+      "description": "Clave publica de Google reCAPTCHA v2, pintada en el HTML del login/registro/recuperar contrasena. Se fija con la variable de entorno RECAPTCHA_SITE_KEY."
+    },
+    {
+      "name": "app.recaptcha.secret-key",
+      "type": "java.lang.String",
+      "description": "Clave secreta de Google reCAPTCHA v2, usada solo por el backend para verificar contra la API de Google. Se fija con la variable de entorno RECAPTCHA_SECRET_KEY; nunca se expone al navegador."
+    }
+  ]
+}

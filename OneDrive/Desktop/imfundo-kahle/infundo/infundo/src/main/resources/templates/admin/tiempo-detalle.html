@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(${titulo})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('tiempo')}"></aside>
+
+    <main class="content content--admin">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('user','ico-sm')}"></svg>
+                    <span th:text="#{'role.' + ${reporte.colaborador.role}}">Rol</span>
+                </span>
+                <h1 th:text="${reporte.colaborador.fullName}">Nombre</h1>
+                <p th:text="${#temporals.format(reporte.semanaInicio, 'dd/MM/yyyy')}">Semana</p>
+            </div>
+            <div class="page-head-side">
+                <span class="chip"
+                      th:classappend="${reporte.estado.name() == 'PENDIENTE_REVISION'} ? 'chip--warn' : (${reporte.estado.name() == 'APROBADO'} ? 'chip--success' : '')"
+                      th:text="#{'estadoReporte.' + ${reporte.estado.name()}}">Estado</span>
+                <a class="btn btn-light" th:href="@{/admin/tiempo/reportes}">
+                    <svg th:replace="~{layout/fragments :: icon('arrow','ico-sm')}" style="transform:rotate(180deg)"></svg>
+                    <span th:text="#{admin.tiempo.detalle.back}">Volver a reportes</span>
+                </a>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Comparativa ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('chart','')}"></svg>
+                    <span th:text="#{admin.tiempo.detalle.comparativa.titulo}">Comparativa semanal</span>
+                </h3>
+                <p class="panel-sub" th:text="#{admin.tiempo.detalle.comparativa}">Horas cronometradas por el sistema vs. justificadas por el colaborador</p>
+            </div>
+            <div class="panel-body">
+
+                <!-- Resumen de la semana -->
+                <div class="time-summary">
+                    <div class="time-summary-card">
+                        <b th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(minutosSistema)}">0h 0m</b>
+                        <span th:text="#{admin.tiempo.detalle.stat.horasTotales}">Horas totales</span>
+                    </div>
+                    <div class="time-summary-card time-summary-card--accent">
+                        <b th:text="${diasActivos}">0</b>
+                        <span th:text="#{admin.tiempo.detalle.stat.diasActivos}">Dias con actividad</span>
+                    </div>
+                    <div class="time-summary-card">
+                        <b th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(minutosPromedio)}">0h 0m</b>
+                        <span th:text="#{admin.tiempo.detalle.stat.promedio}">Promedio diario</span>
+                    </div>
+                </div>
+
+                <!-- Leyenda -->
+                <div class="time-legend">
+                    <span class="time-legend-item">
+                        <span class="time-legend-swatch time-legend-swatch--active"></span>
+                        <span th:text="#{admin.tiempo.detalle.leyenda.trabajado}">Horas trabajadas (sistema)</span>
+                    </span>
+                    <span class="time-legend-item">
+                        <span class="time-legend-swatch time-legend-swatch--idle"></span>
+                        <span th:text="#{admin.tiempo.detalle.leyenda.libre}">Sin registro</span>
+                    </span>
+                </div>
+
+                <!-- Linea de tiempo semanal: un carril horizontal por dia -->
+                <div class="time-timeline">
+                    <div class="time-timeline-inner">
+                        <div class="time-timeline-axis">
+                            <span th:each="hora : ${horas}" th:text="${hora}">08:00</span>
+                        </div>
+                        <div class="time-timeline-row" th:each="dia : ${minutosPorDia.keySet()}"
+                             th:classappend="${minutosPorDia.get(dia) == 0} ? 'time-timeline-row--empty'">
+                            <div class="time-timeline-day">
+                                <b th:text="#{'day.' + ${dia}}">Dia</b>
+                            </div>
+                            <div class="time-timeline-track">
+                                <span class="time-timeline-seg" th:each="hora : ${horas}"
+                                      th:with="minSeg=${minutosPorHoraPorDia.get(dia).get(hora)}"
+                                      th:title="${hora} + ' - ' + ${minSeg} + ' min'">
+                                    <span class="time-timeline-seg-fill" th:if="${minSeg > 0}"
+                                          th:style="'width:' + ${minSeg * 100 / 60} + '%'"></span>
+                                </span>
+                            </div>
+                            <div class="time-timeline-total"
+                                 th:text="${minutosPorDia.get(dia) == 0} ? #{admin.tiempo.detalle.sinActividadDia} : ${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(minutosPorDia.get(dia))}">0h 0m</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notas del colaborador, dia por dia, con sus horas del sistema al lado -->
+                <h4 style="margin:24px 0 10px" th:text="#{admin.tiempo.detalle.notas}">Notas del colaborador</h4>
+                <div class="grid grid-3 gap">
+                    <div class="day-note-card" th:each="dia : ${minutosPorDia}"
+                         th:with="nota=${dia.key == 'LUNES'} ? ${reporte.notasLunes} : (${dia.key == 'MARTES'} ? ${reporte.notasMartes} : (${dia.key == 'MIERCOLES'} ? ${reporte.notasMiercoles} : (${dia.key == 'JUEVES'} ? ${reporte.notasJueves} : ${reporte.notasViernes})))"
+                         th:classappend="${#strings.isEmpty(nota)} ? 'day-note-card--empty'">
+                        <h5>
+                            <span th:text="#{'day.' + ${dia.key}}">Dia</span>
+                            <span class="chip chip--primary" th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(dia.value)}">0h 0m</span>
+                        </h5>
+                        <p th:text="${#strings.isEmpty(nota)} ? #{admin.tiempo.detalle.sinNota} : ${nota}">-</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Solicitud de ajuste ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3 th:text="#{admin.tiempo.detalle.ajuste}">Solicitud de ajuste</h3>
+            </div>
+            <div class="panel-body">
+                <p th:if="${reporte.minutosAjusteSolicitado == null}" class="text-muted" th:text="#{admin.tiempo.detalle.sinAjuste}">Sin ajuste</p>
+                <div th:if="${reporte.minutosAjusteSolicitado != null}">
+                    <p><strong th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(reporte.minutosAjusteSolicitado)}">0h 0m</strong></p>
+                    <p class="text-muted" th:text="${reporte.comentarioAjuste}">Comentario</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Resolucion ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3 th:text="#{common.actions}">Acciones</h3>
+            </div>
+            <div class="panel-body">
+
+                <div class="action-card action-card--approve" th:if="${reporte.estado.name() == 'APROBADO'}">
+                    <div class="action-card-head">
+                        <span class="action-card-ico action-card-ico--approve">
+                            <svg th:replace="~{layout/fragments :: icon('check','')}"></svg>
+                        </span>
+                        <div>
+                            <h4 th:text="#{admin.tiempo.detalle.horasFinales}">Horas finales</h4>
+                            <p th:text="${T(com.imfundokahle.model.RegistroTiempo).formatoMinutos(reporte.minutosFinalesAprobados)}">0h 0m</p>
+                        </div>
+                    </div>
+                    <p class="text-muted" th:if="${reporte.comentarioAdmin}" th:text="${reporte.comentarioAdmin}">Comentario</p>
+                </div>
+
+                <th:block th:if="${reporte.estado.name() != 'PENDIENTE_REVISION' and reporte.estado.name() != 'APROBADO'}">
+                    <div th:replace="~{layout/fragments :: empty(#{admin.tiempo.detalle.noEnviado})}"></div>
+                </th:block>
+
+                <div th:if="${reporte.estado.name() == 'PENDIENTE_REVISION'}" class="grid grid-2 gap action-cards">
+                    <div class="action-card action-card--approve">
+                        <div class="action-card-head">
+                            <span class="action-card-ico action-card-ico--approve">
+                                <svg th:replace="~{layout/fragments :: icon('check','')}"></svg>
+                            </span>
+                            <div>
+                                <h4 th:text="#{admin.tiempo.detalle.btn.aprobar}">Aprobar y cerrar</h4>
+                                <p th:text="#{admin.tiempo.detalle.approve.hint}">Congela las horas finales.</p>
+                            </div>
+                        </div>
+                        <form th:action="@{/admin/tiempo/reportes/{id}/aprobar(id=${reporte.id})}" method="post">
+                            <div class="form-group">
+                                <label th:text="#{admin.tiempo.detalle.horasFinales}">Horas finales</label>
+                                <div class="duration-input">
+                                    <div class="duration-input-field">
+                                        <input type="number" min="0" name="horasFinales" class="form-control"
+                                               th:value="${minutosSugeridos / 60}" required/>
+                                        <span th:text="#{admin.tiempo.detalle.horasFinales.horas}">Horas</span>
+                                    </div>
+                                    <div class="duration-input-field">
+                                        <input type="number" min="0" max="59" name="minutosFinalesExtra" class="form-control"
+                                               th:value="${minutosSugeridos % 60}"/>
+                                        <span th:text="#{admin.tiempo.detalle.horasFinales.minutos}">Minutos</span>
+                                    </div>
+                                </div>
+                                <small class="text-muted" th:text="#{admin.tiempo.detalle.horasFinales.hint}">Hint</small>
+                            </div>
+                            <div class="form-group">
+                                <label th:text="#{admin.tiempo.detalle.comentario}">Comentario</label>
+                                <textarea name="comentario" class="form-control" rows="2"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block" th:text="#{admin.tiempo.detalle.btn.aprobar}">Aprobar y cerrar</button>
+                        </form>
+                    </div>
+
+                    <div class="action-card action-card--observe">
+                        <div class="action-card-head">
+                            <span class="action-card-ico action-card-ico--observe">
+                                <svg th:replace="~{layout/fragments :: icon('arrow','')}" style="transform:rotate(180deg)"></svg>
+                            </span>
+                            <div>
+                                <h4 th:text="#{admin.tiempo.detalle.btn.observar}">Observar</h4>
+                                <p th:text="#{admin.tiempo.detalle.observe.hint}">Vuelve a borrador con tu comentario.</p>
+                            </div>
+                        </div>
+                        <form th:action="@{/admin/tiempo/reportes/{id}/observar(id=${reporte.id})}" method="post">
+                            <div class="form-group">
+                                <label th:text="#{admin.tiempo.detalle.comentario}">Comentario</label>
+                                <textarea name="comentario" class="form-control" rows="4" required
+                                          th:attr="placeholder=#{admin.tiempo.detalle.observar.comentarioRequerido}"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-outline--warn btn-block" th:text="#{admin.tiempo.detalle.btn.observar}">Observar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

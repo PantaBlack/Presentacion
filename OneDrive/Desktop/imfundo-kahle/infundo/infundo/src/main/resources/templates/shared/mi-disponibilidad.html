@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{myAvailability.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <th:block th:switch="${activeRole}">
+        <th:block th:case="'TEACHER'">
+            <aside th:replace="~{layout/fragments :: teacherSidebar('disponibilidad')}"></aside>
+        </th:block>
+        <th:block th:case="'PRACTICANTE'">
+            <aside th:replace="~{layout/fragments :: practicanteSidebar('disponibilidad')}"></aside>
+        </th:block>
+    </th:block>
+
+    <main class="content">
+        <header class="page-head">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('clock','ico-sm')}"></svg>
+                    <span th:text="#{myAvailability.eyebrow}">Mi horario</span>
+                </span>
+                <h1 th:text="#{myAvailability.title}">Mi disponibilidad</h1>
+                <p th:text="#{myAvailability.subtitle}">Marca en que horas puedes atender y de que forma.</p>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Leyenda ===================== -->
+        <section class="panel">
+            <div class="panel-body">
+                <div class="avail-legend">
+                    <button type="button" class="avail-legend-item" data-modalidad="LIBRE">
+                        <span class="avail-swatch avail-swatch--libre"></span>
+                        <span th:text="#{avail.libre}">Libre</span>
+                    </button>
+                    <button type="button" class="avail-legend-item" data-modalidad="PRESENCIAL">
+                        <span class="avail-swatch avail-swatch--presencial"></span>
+                        <span th:text="#{avail.presencial}">Presencial</span>
+                    </button>
+                    <button type="button" class="avail-legend-item" data-modalidad="VIRTUAL">
+                        <span class="avail-swatch avail-swatch--virtual"></span>
+                        <span th:text="#{avail.virtual}">Virtual</span>
+                    </button>
+                    <button type="button" class="avail-legend-item" data-modalidad="OCUPADO">
+                        <span class="avail-swatch avail-swatch--ocupado"></span>
+                        <span th:text="#{avail.ocupado}">Ocupado</span>
+                    </button>
+                    <p class="avail-hint" th:text="#{myAvailability.hint}">
+                        Elige un color y luego toca las horas de la cuadricula, o toca una celda varias veces para recorrer los estados.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Cuadricula interactiva ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+                    <span th:text="#{myAvailability.grid.title}">Mi semana</span>
+                    <span class="panel-sub" th:text="#{myAvailability.grid.sub}">Toca una celda para marcarla</span>
+                </h3>
+                <span class="chip chip--primary" id="availSavedTag" hidden th:text="#{myAvailability.saved}">Guardado</span>
+                <span class="chip chip--success" th:if="${semanaFijada}" th:text="#{disponibilidad.semana.fijadaEtiqueta}">Semana fijada</span>
+            </div>
+            <div class="panel-body" style="overflow-x:auto">
+                <table class="avail-grid" id="availGrid" th:classappend="${semanaFijada} ? 'avail-grid--fijada'"
+                       th:attr="data-fijada=${semanaFijada}">
+                    <thead>
+                    <tr>
+                        <th class="avail-hour-head"></th>
+                        <th th:each="dia : ${dias}" th:text="#{'day.' + ${dia}}">Dia</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="hora : ${horas}">
+                        <th class="avail-hour-head" th:text="${hora}">08:00</th>
+                        <td th:each="dia : ${dias}"
+                            th:with="modalidadActual=${celdas.get(dia).getOrDefault(hora, 'LIBRE')},
+                                     tareaAsignada=${actividadesPorCelda.get(dia).get(hora)},
+                                     actividadOcupado=${actividadesOcupado.get(dia).get(hora)}">
+                            <button type="button" class="avail-cell"
+                                    th:classappend="'avail-cell--' + ${#strings.toLowerCase(modalidadActual)}
+                                                    + (${tareaAsignada != null} ? ' avail-cell--assigned' : '')
+                                                    + (${hora == '13:00'} ? ' avail-cell--locked' : '')"
+                                    th:disabled="${hora == '13:00' or semanaFijada}"
+                                    th:attr="data-dia=${dia},data-hora=${hora},data-modalidad=${modalidadActual},data-actividad=${actividadOcupado}"
+                                    th:title="${hora == '13:00'} ? #{avail.almuerzo.locked} : (${actividadOcupado != null} ? ${actividadOcupado} : ${tareaAsignada})">
+                                <span class="avail-cell-icon"
+                                      th:text="${modalidadActual == 'PRESENCIAL'} ? '&#127979;' : (${modalidadActual == 'VIRTUAL'} ? '&#128187;' : (${modalidadActual == 'ALMUERZO'} ? '&#127860;' : (${modalidadActual == 'OCUPADO'} ? '&#128683;' : '')))"></span>
+                                <span class="avail-cell-label" th:if="${modalidadActual != 'LIBRE'}"
+                                      th:text="${modalidadActual == 'PRESENCIAL'} ? #{avail.presencial} : (${modalidadActual == 'VIRTUAL'} ? #{avail.virtual} : (${modalidadActual == 'ALMUERZO'} ? #{avail.almuerzo} : #{avail.ocupado}))"></span>
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel-body" style="padding-top:0">
+                <form th:if="${!semanaFijada}" th:action="@{/mi-disponibilidad/fijar}" method="post" style="display:inline">
+                    <button type="submit" class="btn btn-primary" th:text="#{disponibilidad.semana.fijarBtn}">Fijar mi semana</button>
+                </form>
+                <form th:if="${semanaFijada}" th:action="@{/mi-disponibilidad/reactivar}" method="post" style="display:inline">
+                    <button type="submit" class="btn btn-outline" th:text="#{disponibilidad.semana.reactivarBtn}">Editar de nuevo</button>
+                </form>
+                <p class="text-muted" style="margin:8px 0 0;font-size:.82rem" th:text="#{disponibilidad.semana.hint}">
+                    Lo que escribas en una hora ocupada se copia solo a tu reporte semanal de horas.
+                </p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- Ventana emergente para describir la actividad al marcar una hora como Ocupado
+     (reemplaza el prompt() nativo del navegador, que se ve fuera de lugar). -->
+<div id="actividadModal" class="modal-overlay">
+    <div class="card modal-card">
+        <h3 th:text="#{disponibilidad.dia.actividadTitulo}">Que vas a hacer en esa hora?</h3>
+        <div class="form-group">
+            <textarea id="actividadInput" class="form-control" rows="3" maxlength="500"
+                      th:placeholder="#{disponibilidad.dia.actividadPlaceholder}"></textarea>
+        </div>
+        <div class="flex gap">
+            <button type="button" class="btn btn-primary" id="actividadAceptar" th:text="#{common.save}">Guardar</button>
+            <button type="button" class="btn btn-outline" id="actividadCancelar" th:text="#{common.cancel}">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    (function () {
+        const CICLO = ['LIBRE', 'PRESENCIAL', 'VIRTUAL', 'OCUPADO'];
+        const ICONOS = { LIBRE: '', PRESENCIAL: '\u{1F3EB}', VIRTUAL: '\u{1F4BB}', ALMUERZO: '\u{1F374}', OCUPADO: '\u{1F6AB}' };
+        const ETIQUETAS_TEXTO = {
+            LIBRE: '',
+            PRESENCIAL: /*[[#{avail.presencial}]]*/ 'Presencial',
+            VIRTUAL: /*[[#{avail.virtual}]]*/ 'Virtual',
+            ALMUERZO: /*[[#{avail.almuerzo}]]*/ 'Almuerzo',
+            OCUPADO: /*[[#{avail.ocupado}]]*/ 'Ocupado'
+        };
+        const TXT_SEMANA_FIJADA = /*[[#{disponibilidad.semana.avisoFijada}]]*/ 'Esta semana ya esta fijada. Presiona "Editar de nuevo" para poder cambiarla.';
+
+        const CSRF_HEADER = document.querySelector('meta[name="_csrf_header"]')?.content;
+        const CSRF_TOKEN = document.querySelector('meta[name="_csrf"]')?.content;
+
+        const grid = document.getElementById('availGrid');
+        const savedTag = document.getElementById('availSavedTag');
+        const fijada = grid.getAttribute('data-fijada') === 'true';
+        let pintarColor = null; // si el usuario elige un color en la leyenda, "pintar" en vez de recorrer el ciclo
+
+        function aplicarEstado(btn, modalidad, actividad) {
+            btn.dataset.modalidad = modalidad;
+            btn.dataset.actividad = actividad || '';
+            if (actividad) btn.title = actividad;
+            // El "punto" de tarea asignada no depende de la modalidad: se conserva al cambiarla.
+            const tieneTareaAsignada = btn.classList.contains('avail-cell--assigned');
+            btn.className = 'avail-cell avail-cell--' + modalidad.toLowerCase()
+                    + (tieneTareaAsignada ? ' avail-cell--assigned' : '');
+            btn.innerHTML = '';
+            const icono = document.createElement('span');
+            icono.className = 'avail-cell-icon';
+            icono.textContent = ICONOS[modalidad] || '';
+            btn.appendChild(icono);
+            if (modalidad !== 'LIBRE') {
+                const etiqueta = document.createElement('span');
+                etiqueta.className = 'avail-cell-label';
+                etiqueta.textContent = ETIQUETAS_TEXTO[modalidad] || '';
+                btn.appendChild(etiqueta);
+            }
+        }
+
+        function avisarGuardado() {
+            if (!savedTag) return;
+            savedTag.hidden = false;
+            clearTimeout(avisarGuardado._t);
+            avisarGuardado._t = setTimeout(() => { savedTag.hidden = true; }, 1500);
+        }
+
+        async function guardarCelda(btn, modalidad, actividad) {
+            const dia = btn.dataset.dia;
+            const hora = btn.dataset.hora;
+            btn.classList.add('avail-cell--pendiente');
+            try {
+                const params = { dia: dia, horaInicio: hora, modalidad: modalidad };
+                if (actividad) params.actividad = actividad;
+                const resp = await fetch(/*[[@{/mi-disponibilidad/celda}]]*/ '/mi-disponibilidad/celda', {
+                    method: 'POST',
+                    headers: Object.assign(
+                        { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        CSRF_HEADER ? { [CSRF_HEADER]: CSRF_TOKEN } : {}
+                    ),
+                    body: new URLSearchParams(params)
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.ok === 'true' || data.ok === true) {
+                        aplicarEstado(btn, data.modalidad, actividad);
+                        avisarGuardado();
+                        return;
+                    }
+                    if (data.reason === 'semana_fijada') {
+                        alert(TXT_SEMANA_FIJADA);
+                        return;
+                    }
+                }
+                console.error('No se pudo guardar la celda');
+            } catch (e) {
+                console.error('Error de red al guardar la disponibilidad', e);
+            } finally {
+                btn.classList.remove('avail-cell--pendiente');
+            }
+        }
+
+        // ---- Ventana emergente propia para pedir la actividad de una hora "Ocupado"
+        // (en vez del prompt() nativo del navegador). ----
+        const actividadModal = document.getElementById('actividadModal');
+        const actividadInput = document.getElementById('actividadInput');
+        const actividadAceptar = document.getElementById('actividadAceptar');
+        const actividadCancelar = document.getElementById('actividadCancelar');
+        let btnEnEdicion = null;
+
+        function abrirModalActividad(btn) {
+            btnEnEdicion = btn;
+            actividadInput.value = btn.dataset.modalidad === 'OCUPADO' ? (btn.dataset.actividad || '') : '';
+            actividadModal.classList.add('show');
+            setTimeout(() => actividadInput.focus(), 50);
+        }
+        function cerrarModalActividad() {
+            actividadModal.classList.remove('show');
+            btnEnEdicion = null;
+        }
+        actividadCancelar.addEventListener('click', cerrarModalActividad);
+        actividadModal.addEventListener('click', (e) => { if (e.target === actividadModal) cerrarModalActividad(); });
+        actividadAceptar.addEventListener('click', () => {
+            const actividad = actividadInput.value.trim();
+            if (!actividad) { actividadInput.focus(); return; }
+            const btn = btnEnEdicion;
+            cerrarModalActividad();
+            guardarCelda(btn, 'OCUPADO', actividad);
+        });
+        actividadInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); actividadAceptar.click(); }
+        });
+
+        /** Para OCUPADO hace falta describir la actividad antes de guardar; si cancela, no pasa nada. */
+        function elegirModalidad(btn, modalidad) {
+            if (modalidad === 'OCUPADO') {
+                abrirModalActividad(btn);
+            } else {
+                guardarCelda(btn, modalidad, null);
+            }
+        }
+
+        if (!fijada) {
+            grid.addEventListener('click', (e) => {
+                const btn = e.target.closest('.avail-cell');
+                if (!btn || btn.disabled) return;
+                const actual = btn.dataset.modalidad || 'LIBRE';
+                let siguiente;
+                if (pintarColor) {
+                    // Con un color elegido en la leyenda: si ya tiene ese color, lo borra; si no, lo pinta.
+                    siguiente = actual === pintarColor ? 'LIBRE' : pintarColor;
+                } else {
+                    siguiente = CICLO[(CICLO.indexOf(actual) + 1) % CICLO.length];
+                }
+                elegirModalidad(btn, siguiente);
+            });
+
+            // Leyenda: elegir un color activa el "modo pintar" (clic y arrastra sobre varias celdas).
+            document.querySelectorAll('.avail-legend-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const modalidad = item.dataset.modalidad;
+                    const yaActivo = item.classList.contains('active');
+                    document.querySelectorAll('.avail-legend-item').forEach(i => i.classList.remove('active'));
+                    pintarColor = yaActivo ? null : modalidad;
+                    if (pintarColor) item.classList.add('active');
+                });
+            });
+
+            // Pintar arrastrando el mouse mientras esta apretado (solo si hay color elegido, y no es OCUPADO:
+            // arrastrar pediria un prompt por cada celda, mejor una por una con clic).
+            let arrastrando = false;
+            grid.addEventListener('mousedown', () => { arrastrando = true; });
+            document.addEventListener('mouseup', () => { arrastrando = false; });
+            grid.addEventListener('mouseover', (e) => {
+                if (!arrastrando || !pintarColor || pintarColor === 'OCUPADO') return;
+                const btn = e.target.closest('.avail-cell');
+                // El almuerzo obligatorio esta deshabilitado (atributo disabled), pero eso
+                // solo bloquea el evento "click": al arrastrar para pintar hay que ignorarlo aqui.
+                if (!btn || btn.disabled) return;
+                if (btn.dataset.modalidad !== pintarColor) {
+                    guardarCelda(btn, pintarColor, null);
+                }
+            });
+        }
+    })();
+</script>
+</body>
+</html>

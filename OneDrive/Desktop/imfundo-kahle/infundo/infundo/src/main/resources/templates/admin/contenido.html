@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.contenido.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('contenido')}"></aside>
+
+    <main class="content content--admin" style="padding-bottom:90px">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('globe','ico-sm')}"></svg>
+                    <span th:text="#{admin.portal}">Portal Administrador</span>
+                </span>
+                <h1 th:text="#{admin.contenido.title}">Contenido del sitio</h1>
+                <p th:text="#{admin.contenido.subtitle}">Cambia los textos e imagenes de la pagina de inicio sin tocar codigo.</p>
+            </div>
+            <div class="page-head-side">
+                <a class="btn btn-light" th:href="@{/}" target="_blank" rel="noopener">
+                    <svg th:replace="~{layout/fragments :: icon('globe','ico-sm')}"></svg>
+                    <span th:text="#{admin.contenido.ver.sitio}">Ver la pagina de inicio</span>
+                </a>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- ===================== Editor visual ===================== -->
+        <section class="panel panel-editor-visual">
+            <div class="panel-body editor-visual-cta">
+                <div class="editor-visual-cta-copy">
+                    <h3 th:text="#{admin.contenido.visual.titulo}">Editor visual (recomendado)</h3>
+                    <p th:text="#{admin.contenido.visual.hint}">Edita directamente sobre la pagina real: haz clic en cualquier texto o imagen para cambiarlos.</p>
+                </div>
+                <a class="btn btn-primary btn-lg" th:href="@{/admin/contenido/editor}">
+                    <svg th:replace="~{layout/fragments :: icon('pencil','ico-sm')}"></svg>
+                    <span th:text="#{admin.contenido.visual.abrir}">Abrir editor visual</span>
+                </a>
+            </div>
+            <div class="panel-body editor-visual-cta" style="padding-top:0;flex-wrap:wrap;gap:10px">
+                <a class="btn btn-light btn-sm" th:href="@{/admin/contenido/editor/profesor}">
+                    <svg th:replace="~{layout/fragments :: icon('book','ico-sm')}"></svg>
+                    <span th:text="#{admin.contenido.editor.profesor}">Editar panel de Profesor</span>
+                </a>
+                <a class="btn btn-light btn-sm" th:href="@{/admin/contenido/editor/alumno}">
+                    <svg th:replace="~{layout/fragments :: icon('graduation','ico-sm')}"></svg>
+                    <span th:text="#{admin.contenido.editor.alumno}">Editar panel de Alumno</span>
+                </a>
+                <a class="btn btn-light btn-sm" th:href="@{/admin/contenido/editor/practicante}">
+                    <svg th:replace="~{layout/fragments :: icon('target','ico-sm')}"></svg>
+                    <span th:text="#{admin.contenido.editor.practicante}">Editar panel de Practicante</span>
+                </a>
+                <a class="btn btn-light btn-sm" th:href="@{/admin/dashboard(modoEdicion=true)}">
+                    <svg th:replace="~{layout/fragments :: icon('chart','ico-sm')}"></svg>
+                    <span th:text="#{admin.contenido.editor.admin}">Editar mi panel (Admin)</span>
+                </a>
+            </div>
+        </section>
+
+        <!-- ===================== Tema de temporada ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('star','')}"></svg>
+                    <span th:text="#{admin.contenido.tema.titulo}">Tema de temporada</span>
+                </h3>
+                <p class="panel-sub" th:text="#{admin.contenido.tema.hint}">Hint</p>
+            </div>
+            <div class="panel-body">
+                <div class="tema-grid">
+                    <form th:each="t : ${temas}" th:action="@{/admin/contenido/tema}" method="post">
+                        <input type="hidden" name="tema" th:value="${t}"/>
+                        <button type="submit" class="tema-card" th:classappend="${t.name() == temaActual} ? 'tema-card--activo'">
+                            <span th:class="'tema-swatch tema-swatch--' + ${#strings.toLowerCase(t.name())}"></span>
+                            <span th:text="#{'promoTema.' + ${t}}">Tema</span>
+                            <span class="tema-card-check" th:if="${t.name() == temaActual}" th:text="#{admin.contenido.tema.actual}">Actual</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Imagenes ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('grid','')}"></svg>
+                    <span th:text="#{admin.contenido.imagenes.titulo}">Imagenes</span>
+                </h3>
+            </div>
+            <div class="panel-body">
+                <div class="grid grid-4 gap">
+                    <div class="card" th:each="img : ${imagenes}" style="text-align:center">
+                        <p class="text-muted" style="font-size:.8rem;margin:0 0 8px" th:text="${img.etiqueta}">Imagen</p>
+                        <img th:if="${img.tieneImagen}"
+                             th:src="@{/contenido/imagen/{clave}(clave=${img.clave},v=${img.version})}"
+                             class="admin-img-thumb" alt=""/>
+                        <div th:unless="${img.tieneImagen}" class="admin-img-thumb admin-img-thumb--vacia">
+                            <span th:text="#{admin.contenido.imagenes.sinImagen}">Sin imagen (usa el estilo por defecto)</span>
+                        </div>
+                        <form th:action="@{'/admin/contenido/imagen/' + ${img.clave}}" method="post" enctype="multipart/form-data">
+                            <input type="file" name="archivo" accept="image/png,image/jpeg,image/gif,image/webp" class="form-control" required/>
+                            <small class="text-muted" style="font-size:.72rem" th:text="#{admin.contenido.imagenes.formatos}">JPG, PNG...</small>
+                            <button class="btn btn-outline btn-sm btn-block mt-1" type="submit" th:text="#{admin.contenido.imagenes.subir}">Subir</button>
+                        </form>
+                        <form th:if="${img.opcional and img.tieneImagen}"
+                              th:action="@{'/admin/contenido/imagen/' + ${img.clave} + '/eliminar'}" method="post">
+                            <button class="btn btn-light btn-sm btn-block mt-1" type="submit" th:text="#{admin.contenido.imagenes.quitar}">Quitar imagen</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Secciones nuevas (texto libre) ===================== -->
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('plus','')}"></svg>
+                    <span th:text="#{admin.contenido.secciones.titulo}">Secciones nuevas</span>
+                </h3>
+                <p class="panel-sub" th:text="#{admin.contenido.secciones.hint}">Hint</p>
+            </div>
+            <div class="panel-body">
+                <p class="text-muted" style="margin-top:0" th:text="#{admin.contenido.secciones.moverHint}">
+                    Para arrastrarlas y rotarlas, hazlo desde el editor visual.
+                </p>
+                <p class="text-muted" th:if="${#lists.isEmpty(seccionesPersonalizadas)}" th:text="#{admin.contenido.secciones.vacio}">
+                    Todavia no agregaste ninguna seccion nueva.
+                </p>
+                <div class="custom-section-list">
+                    <div class="custom-section-item" th:each="s : ${seccionesPersonalizadas}"
+                         th:classappend="${!s.visible} ? 'custom-section-item--oculta'">
+
+                        <form th:if="${!s.imagen}" th:action="@{'/admin/contenido/secciones/' + ${s.id}}" method="post" class="custom-section-form">
+                            <input type="text" class="form-control" name="titulo" th:value="${s.titulo}"
+                                   maxlength="200" th:placeholder="#{admin.contenido.secciones.tituloCampo}"/>
+                            <textarea class="form-control" name="texto" rows="3" required maxlength="4000"
+                                      th:placeholder="#{admin.contenido.secciones.textoCampo}" th:text="${s.texto}"></textarea>
+                            <div class="custom-section-actions">
+                                <button class="btn btn-outline btn-sm" type="submit" th:text="#{admin.contenido.secciones.guardarCambios}">Guardar cambios</button>
+                                <span class="chip" th:if="${!s.visible}" th:text="#{admin.contenido.secciones.oculta}">Oculta</span>
+                            </div>
+                        </form>
+
+                        <div th:if="${s.imagen}" class="custom-section-form">
+                            <img th:src="@{/contenido/seccion-imagen/{id}(id=${s.id},v=${s.imagenVersion})}"
+                                 class="admin-img-thumb" style="height:110px" alt=""/>
+                            <span class="chip" th:if="${!s.visible}" th:text="#{admin.contenido.secciones.oculta}">Oculta</span>
+                        </div>
+
+                        <div class="custom-section-side">
+                            <form th:action="@{'/admin/contenido/secciones/' + ${s.id} + '/visibilidad'}" method="post">
+                                <button class="btn btn-light btn-sm" type="submit"
+                                        th:text="${s.visible} ? #{admin.contenido.secciones.ocultar} : #{admin.contenido.secciones.mostrar}">Ocultar</button>
+                            </form>
+                            <form th:action="@{'/admin/contenido/secciones/' + ${s.id} + '/eliminar'}" method="post"
+                                  th:attr="data-confirm=#{admin.contenido.secciones.confirmarEliminar}">
+                                <button class="btn btn-light btn-sm" type="submit" th:text="#{admin.contenido.secciones.eliminar}">Eliminar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-2 gap" style="margin-top:14px">
+                    <form th:action="@{/admin/contenido/secciones}" method="post" class="custom-section-form custom-section-form--nueva">
+                        <input type="text" class="form-control" name="titulo" maxlength="200"
+                               th:placeholder="#{admin.contenido.secciones.tituloCampo}"/>
+                        <textarea class="form-control" name="texto" rows="3" required maxlength="4000"
+                                  th:placeholder="#{admin.contenido.secciones.textoCampo}"></textarea>
+                        <button class="btn btn-primary btn-sm" type="submit" th:text="#{admin.contenido.secciones.agregarTexto}">Agregar texto</button>
+                    </form>
+                    <form th:action="@{/admin/contenido/secciones/imagen}" method="post" enctype="multipart/form-data"
+                          class="custom-section-form custom-section-form--nueva">
+                        <input type="file" name="archivo" accept="image/png,image/jpeg,image/gif,image/webp" class="form-control" required/>
+                        <small class="text-muted" style="font-size:.72rem" th:text="#{admin.contenido.imagenes.formatos}">JPG, PNG...</small>
+                        <button class="btn btn-primary btn-sm" type="submit" th:text="#{admin.contenido.secciones.agregarImagen}">Agregar imagen</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== Textos ===================== -->
+        <form id="formTextos" th:action="@{/admin/contenido/texto}" method="post">
+            <section class="panel contenido-textos" data-lang="es">
+                <div class="panel-head">
+                    <div>
+                        <h3>
+                            <svg th:replace="~{layout/fragments :: icon('file','')}"></svg>
+                            <span th:text="#{admin.contenido.textos.titulo}">Textos</span>
+                        </h3>
+                        <p class="panel-sub" th:text="#{admin.contenido.textos.hint}">Hint</p>
+                    </div>
+                    <div class="lang-switch" role="tablist">
+                        <button type="button" class="lang-switch-btn active" data-lang-btn="es">Espanol</button>
+                        <button type="button" class="lang-switch-btn" data-lang-btn="fr">Francais</button>
+                        <button type="button" class="lang-switch-btn" data-lang-btn="en">English</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <details th:each="seccion, secIter : ${secciones}" th:attr="open=${secIter.first} ? 'open' : null" class="contenido-seccion">
+                        <summary th:text="${seccion.titulo}">Seccion</summary>
+                        <div class="contenido-seccion-body">
+                            <th:block th:each="campo : ${seccion.campos}">
+                                <h5 class="contenido-grupo" th:if="${campo.nuevoGrupo}" th:text="${campo.grupo}">Grupo</h5>
+                                <div class="campo-row">
+                                    <label th:text="${campo.etiqueta}">Campo</label>
+                                    <div class="campo-idioma campo-idioma--es">
+                                        <textarea class="form-control" rows="2" th:name="'es__' + ${campo.clave}" th:text="${campo.es}"></textarea>
+                                    </div>
+                                    <div class="campo-idioma campo-idioma--fr">
+                                        <textarea class="form-control" rows="2" th:name="'fr__' + ${campo.clave}" th:text="${campo.fr}"></textarea>
+                                    </div>
+                                    <div class="campo-idioma campo-idioma--en">
+                                        <textarea class="form-control" rows="2" th:name="'en__' + ${campo.clave}" th:text="${campo.en}"></textarea>
+                                    </div>
+                                </div>
+                            </th:block>
+                        </div>
+                    </details>
+                </div>
+            </section>
+        </form>
+    </main>
+</div>
+
+<!-- Barra fija de guardar: siempre visible, sin importar cuanto se haya bajado en el formulario -->
+<div class="guardar-bar">
+    <span th:text="#{admin.contenido.textos.titulo}">Textos</span>
+    <button type="submit" form="formTextos" class="btn btn-primary" th:text="#{admin.contenido.guardar}">Guardar cambios</button>
+</div>
+
+<script>
+    document.querySelectorAll('[data-lang-btn]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var idioma = btn.getAttribute('data-lang-btn');
+            document.querySelector('.contenido-textos').setAttribute('data-lang', idioma);
+            document.querySelectorAll('[data-lang-btn]').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        });
+    });
+</script>
+<div th:replace="~{layout/fragments :: confirmScript}"></div>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Clases')}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: studentSidebar('classes')}"></aside>
+    <main class="content content--student">
+        <h1 class="page-title" th:text="#{student.classes.title}">Clases disponibles</h1>
+        <p class="page-subtitle" th:text="#{student.classes.subtitle}">Explora e inscribete</p>
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- Filtro por idioma -->
+        <form method="get" class="card mb-3 flex gap wrap" style="align-items:flex-end">
+            <div class="form-group" style="margin:0">
+                <label th:text="#{common.language}">Idioma</label>
+                <select name="language" class="form-control">
+                    <option value="" th:text="#{common.all}">Todos</option>
+                    <option th:each="l : ${languages}" th:value="${l}" th:text="#{'lang.' + ${l}}"
+                            th:selected="${languageFilter == l.name()}">Idioma</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" th:text="#{common.filter}">Filtrar</button>
+        </form>
+
+        <div class="grid grid-auto" th:if="${!schedules.isEmpty()}">
+            <div class="card" th:each="s : ${schedules}"
+                 th:with="enrolled=${scheduleService.isStudentEnrolled(student, s)}, seats=${scheduleService.availableSeats(s)}">
+                <div class="flex-between">
+                    <span class="badge badge-lang" th:text="#{'lang.' + ${s.language}}">Idioma</span>
+                    <span class="badge badge-role" th:text="#{common.seats} + ': ' + ${seats}">Cupos</span>
+                </div>
+                <h3 style="margin:10px 0 4px" th:text="${s.subject}">Materia</h3>
+                <p class="text-muted" style="margin:0 0 6px">
+                    &#128100; <span th:text="${s.teacher.fullName}">Profesor</span></p>
+                <p style="margin:0 0 6px">
+                    &#128197; <span th:text="#{'day.' + ${s.dayOfWeek}}">Dia</span>,
+                    <span th:text="${s.startTime} + ' - ' + ${s.endTime}">Hora</span></p>
+                <p class="text-muted" style="font-size:.85rem" th:text="${s.description}">Descripcion</p>
+
+                <form th:if="${!enrolled}" th:action="@{'/student/classes/' + ${s.id} + '/enroll'}" method="post">
+                    <button class="btn btn-primary btn-block" th:disabled="${seats <= 0}"
+                            th:text="${seats > 0} ? #{student.enroll} : #{enroll.full}">Inscribirse</button>
+                </form>
+                <form th:if="${enrolled}" th:action="@{'/student/classes/' + ${s.id} + '/cancel'}" method="post">
+                    <span class="badge badge-approved mb-2" style="display:block" th:text="'&#10003; ' + #{student.enrolled}">Inscrito</span>
+                    <button class="btn btn-danger btn-block" th:text="#{student.cancel}">Cancelar</button>
+                </form>
+            </div>
+        </div>
+        <p class="text-muted" th:if="${schedules.isEmpty()}" th:text="#{common.none}">Sin clases</p>
+
+        <!-- Mis clases (vista semanal) -->
+        <h3 class="mt-3" th:text="#{student.classes.mine}">Mis clases inscritas</h3>
+        <div class="week-grid" th:if="${!myEnrollments.isEmpty()}">
+            <div class="week-day" th:each="d : ${T(com.imfundokahle.model.DayOfWeekEnum).values()}">
+                <h4 th:text="#{'day.' + ${d}}">Dia</h4>
+                <div th:each="e : ${myEnrollments}" th:if="${e.schedule.dayOfWeek.name() == d.name()}">
+                    <div class="slot">
+                        <div class="slot-time" th:text="${e.schedule.startTime} + ' - ' + ${e.schedule.endTime}">Hora</div>
+                        <div class="slot-subject" th:text="${e.schedule.subject}">Materia</div>
+                        <span class="chip chip--primary" th:if="${e.schedule.personalizada}"
+                              th:text="'&#128101; ' + #{student.classes.personalizada} + ' &middot; ' + ${e.schedule.teacher.fullName}">Clase personalizada</span>
+                        <span class="chip chip--danger" style="display:block;margin:4px 0" th:if="${canceladasEstaSemana.containsKey(e.schedule.id)}"
+                              th:text="'&#128308; ' + #{semana.canceladaEtiqueta} + ': ' + ${canceladasEstaSemana.get(e.schedule.id)}">Cancelada esta semana</span>
+                        <p class="text-muted" style="font-size:.78rem;margin:4px 0" th:if="${e.notasProgreso}"
+                           th:text="'&#128221; ' + ${e.notasProgreso}">Notas de progreso</p>
+                        <a th:if="${e.schedule.meetLink and !canceladasEstaSemana.containsKey(e.schedule.id)}" class="btn btn-primary btn-sm mt-1" style="display:block;text-align:center"
+                           th:href="${e.schedule.meetLink}" target="_blank" rel="noopener"
+                           th:text="'&#128249; ' + #{student.classes.joinMeet}">Unirse a la videollamada</a>
+                        <button type="button" class="btn btn-outline btn-sm btn-gcal mt-1" style="display:block;width:100%"
+                                th:attr="data-dia=${e.schedule.dayOfWeek},data-inicio=${e.schedule.startTime},data-fin=${e.schedule.endTime},data-materia=${e.schedule.subject},data-desc=${e.schedule.description},data-loc=${e.schedule.meetLink}"
+                                th:text="'&#128197; ' + #{common.addToCalendar}">Agregar a Google Calendar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <p class="text-muted" th:if="${myEnrollments.isEmpty()}" th:text="#{student.noClasses}">Sin clases</p>
+    </main>
+</div>
+<script th:src="@{/js/clases-comunes.js}"></script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.users.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('users')}"></aside>
+    <main class="content content--admin" th:with="totalEnabled=${#lists.size(users.?[enabled == true])},
+                                    totalAdmin=${#lists.size(users.?[role.name() == 'ADMIN'])},
+                                    totalTeacher=${#lists.size(users.?[role.name() == 'TEACHER'])},
+                                    totalStudent=${#lists.size(users.?[role.name() == 'STUDENT'])},
+                                    totalPracticante=${#lists.size(users.?[role.name() == 'PRACTICANTE'])}">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('users','ico-sm')}"></svg>
+                    <span th:text="#{admin.users.eyebrow}">Equipo</span>
+                </span>
+                <h1 th:text="#{admin.users.title}">Gestion de usuarios</h1>
+                <p th:text="#{admin.users.subtitle}">Administra los roles</p>
+            </div>
+            <div class="page-head-side">
+                <div class="head-stat">
+                    <b th:text="${#lists.size(users)}">0</b>
+                    <span th:text="#{admin.users.stats.total}">Usuarios totales</span>
+                </div>
+                <div class="head-stat">
+                    <b th:text="${totalEnabled}">0</b>
+                    <span th:text="#{admin.users.stats.enabled}">Habilitados</span>
+                </div>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <section class="panel">
+            <div class="panel-body">
+                <div class="flex gap wrap" style="align-items:center;justify-content:space-between">
+                    <div class="search-input-wrap">
+                        <svg th:replace="~{layout/fragments :: icon('user','ico-sm')}"></svg>
+                        <input type="search" id="userSearchInput" class="form-control"
+                               th:placeholder="#{admin.users.search.placeholder}"/>
+                    </div>
+                    <div class="flex gap wrap" id="roleFilterChips">
+                        <button type="button" class="filter-chip active" data-role-filter="">
+                            <span th:text="#{common.all}">Todos</span>
+                            <b th:text="${#lists.size(users)}">0</b>
+                        </button>
+                        <button type="button" class="filter-chip filter-chip--admin" data-role-filter="ADMIN">
+                            <span th:text="#{role.ADMIN}">Administrador</span>
+                            <b th:text="${totalAdmin}">0</b>
+                        </button>
+                        <button type="button" class="filter-chip filter-chip--teacher" data-role-filter="TEACHER">
+                            <span th:text="#{role.TEACHER}">Profesor</span>
+                            <b th:text="${totalTeacher}">0</b>
+                        </button>
+                        <button type="button" class="filter-chip filter-chip--student" data-role-filter="STUDENT">
+                            <span th:text="#{role.STUDENT}">Alumno</span>
+                            <b th:text="${totalStudent}">0</b>
+                        </button>
+                        <button type="button" class="filter-chip filter-chip--practicante" data-role-filter="PRACTICANTE">
+                            <span th:text="#{role.PRACTICANTE}">Practicante</span>
+                            <b th:text="${totalPracticante}">0</b>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-body panel-body--flush" style="overflow-x:auto">
+                <table class="data" id="usersTable">
+                    <thead><tr>
+                        <th th:text="#{common.name}">Nombre</th>
+                        <th th:text="#{register.email}">Correo</th>
+                        <th th:text="#{common.role}">Rol</th>
+                        <th th:text="#{admin.users.access}">Acceso</th>
+                        <th th:text="#{common.actions}">Acciones</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="u : ${users}"
+                        th:attr="data-role=${u.role},data-search=${#strings.toLowerCase(u.fullName + ' ' + u.email)}">
+                        <td>
+                            <div class="flex gap" style="align-items:center">
+                                <span class="avatar" th:classappend="'avatar--' + ${#strings.toLowerCase(u.role)}"
+                                      style="width:32px;height:32px;font-size:.85rem" th:text="${u.initial}">A</span>
+                                <span th:text="${u.fullName}">Nombre</span>
+                            </div>
+                        </td>
+                        <td th:text="${u.email}">correo</td>
+                        <td>
+                            <span class="badge badge-role" th:classappend="'badge-role--' + ${#strings.toLowerCase(u.role)}"
+                                  th:text="#{'role.' + ${u.role}}">Rol</span>
+                        </td>
+                        <td>
+                            <span class="badge" th:classappend="${u.enabled} ? 'badge-approved' : 'badge-rejected'"
+                                  th:text="${u.enabled} ? #{admin.users.status.enabled} : #{admin.users.status.disabled}">Estado</span>
+                            <span class="badge badge-pending" th:if="${u.locked}" th:text="#{admin.users.status.locked}">Bloqueado</span>
+                        </td>
+                        <td>
+                            <div class="flex gap wrap">
+                                <form th:action="@{'/admin/users/' + ${u.id} + '/role'}" method="post" class="flex gap">
+                                    <select name="role" class="form-control" style="width:auto;padding:6px 10px">
+                                        <option th:each="r : ${roles}" th:value="${r}" th:text="#{'role.' + ${r}}"
+                                                th:selected="${u.role.name() == r.name()}">Rol</option>
+                                    </select>
+                                    <button class="btn btn-primary btn-sm" th:text="#{common.save}">Guardar</button>
+                                </form>
+                                <form th:action="@{'/admin/users/' + ${u.id} + '/toggle-enabled'}" method="post"
+                                      th:if="${u.email != currentUser.email}"
+                                      th:attr="data-confirm=${u.enabled} ? #{admin.users.disable.confirm} : null">
+                                    <input type="hidden" name="enabled" th:value="${!u.enabled}"/>
+                                    <button class="btn btn-sm" th:classappend="${u.enabled} ? 'btn-danger' : 'btn-success'"
+                                            th:text="${u.enabled} ? #{admin.users.disable} : #{admin.users.enable}">Deshabilitar</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="text-muted text-center" id="userSearchEmpty" hidden th:text="#{admin.users.search.empty}"
+                   style="padding:24px 0">No se encontraron usuarios.</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div th:replace="~{layout/fragments :: confirmScript}"></div>
+
+<!-- Buscador en vivo + filtro por rol: solo filtra filas ya renderizadas, sin recargar la pagina -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('userSearchInput');
+        const chips = document.querySelectorAll('#roleFilterChips .filter-chip');
+        const rows = document.querySelectorAll('#usersTable tbody tr');
+        const emptyMsg = document.getElementById('userSearchEmpty');
+        let activeRole = '';
+
+        function applyFilters() {
+            const q = (searchInput.value || '').trim().toLowerCase();
+            let visibleCount = 0;
+            rows.forEach(function (row) {
+                const matchesRole = !activeRole || row.getAttribute('data-role') === activeRole;
+                const matchesSearch = !q || (row.getAttribute('data-search') || '').indexOf(q) !== -1;
+                const show = matchesRole && matchesSearch;
+                row.hidden = !show;
+                if (show) visibleCount++;
+            });
+            emptyMsg.hidden = visibleCount !== 0;
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+        chips.forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                chips.forEach(function (c) { c.classList.remove('active'); });
+                chip.classList.add('active');
+                activeRole = chip.getAttribute('data-role-filter') || '';
+                applyFilters();
+            });
+        });
+    });
+</script>
+</body>
+</html>

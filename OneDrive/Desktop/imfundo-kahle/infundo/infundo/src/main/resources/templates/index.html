@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Inicio')}">
+<!-- ============================================================
+     APPLE-STYLE SCROLL ANIMATIONS (CSS)
+     ============================================================ -->
+<style>
+    /* Clases de animacion suaves tipo Apple */
+    .reveal-up {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal-scale {
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal-left {
+        opacity: 0;
+        transform: translateX(-40px);
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .reveal-right {
+        opacity: 0;
+        transform: translateX(40px);
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .is-revealed {
+        opacity: 1 !important;
+        transform: translate(0, 0) scale(1) !important;
+    }
+    /* Estilizar un poco mas premium el hero */
+    .hero-copy h1 {
+        font-weight: 700 !important;
+        letter-spacing: -0.03em !important;
+    }
+    .seccion-titulo {
+        font-weight: 700 !important;
+        letter-spacing: -0.02em !important;
+    }
+</style>
+
+</head>
+<body>
+
+<!-- Barra de progreso de lectura: solo presentacion, no toca contenido ni logica -->
+<div class="scroll-progress" aria-hidden="true"><span id="scrollProgressBar"></span></div>
+
+<!-- Navbar publica -->
+<nav th:replace="~{layout/fragments :: topbar}"></nav>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<header class="hero" id="inicio" data-bg-ck="fondo-hero" data-bg-var="--hero-bg" data-bg-class="hero--fondo-custom"
+        th:with="fondoHeroUrl=${imgV.containsKey('fondo-hero')} ? @{/contenido/imagen/fondo-hero(v=${imgV.get('fondo-hero')})} : null"
+        th:classappend="${fondoHeroUrl != null} ? 'hero--fondo-custom' : ''"
+        th:style="${fondoHeroUrl != null} ? ('--hero-bg:url(' + ${fondoHeroUrl} + ')') : null">
+    <!-- Liston decorativo de esquina, segun el tema de temporada elegido en el panel de admin.
+         No se muestra nada si el tema es NORMAL. -->
+    <div class="corner-ribbon" th:if="${promoTema != 'NORMAL'}"
+         th:classappend="'corner-ribbon--' + ${#strings.toLowerCase(promoTema)}" aria-hidden="true">
+        <span th:text="#{'ribbon.' + ${promoTema}}">Temporada</span>
+    </div>
+    <div class="hero-3d" id="hero3d" aria-hidden="true"><canvas id="hero3dCanvas"></canvas></div>
+    <div class="hero-3d-fade" aria-hidden="true"></div>
+    <div class="hero-inner">
+        <div class="hero-copy">
+            <span class="hero-badge">&#9733; <span data-ck="landing.hero.badge" th:text="#{landing.hero.badge}">Aprende a tu ritmo, habla sin limites</span></span>
+            <h1 data-ck="landing.hero.title" th:text="#{landing.hero.title}">Domina un idioma, abre nuevas puertas</h1>
+            <p data-ck="landing.hero.subtitle" th:text="#{landing.hero.subtitle}">Clases interactivas, profesores expertos...</p>
+
+            <ul class="hero-bullets">
+                <li><span class="hero-bullet-icon hero-bullet-icon--1">&#127891;</span><span data-ck="landing.hero.bullet.1" th:text="#{landing.hero.bullet.1}">Clases en vivo con profesores</span></li>
+                <li><span class="hero-bullet-icon hero-bullet-icon--2">&#127919;</span><span data-ck="landing.hero.bullet.2" th:text="#{landing.hero.bullet.2}">Practica real desde el inicio</span></li>
+                <li><span class="hero-bullet-icon hero-bullet-icon--3">&#129513;</span><span data-ck="landing.hero.bullet.3" th:text="#{landing.hero.bullet.3}">Ruta de aprendizaje personalizada</span></li>
+                <li><span class="hero-bullet-icon hero-bullet-icon--4">&#129309;</span><span data-ck="landing.hero.bullet.4" th:text="#{landing.hero.bullet.4}">Comunidad global que te impulsa</span></li>
+            </ul>
+
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="#cursos" data-ck="landing.hero.cta.primary" th:text="#{landing.hero.cta.primary}">Explorar cursos</a>
+                <a class="btn btn-outline" href="#metodologia" data-ck="landing.hero.cta.secondary" th:text="#{landing.hero.cta.secondary}">Ver como funciona</a>
+            </div>
+        </div>
+
+        <div class="hero-visual hero-visual--libros" aria-hidden="true" id="heroLibros">
+            <div class="hero-visual-blob"></div>
+            <div class="hero-libro hero-libro--back" data-depth="8">
+                <img data-img-ck="libro-1" th:src="@{/contenido/imagen/libro-1(v=${imgV.get('libro-1')})}" alt=""/>
+            </div>
+            <div class="hero-libro hero-libro--mid" data-depth="14">
+                <img data-img-ck="libro-palabras" th:src="@{/contenido/imagen/libro-palabras(v=${imgV.get('libro-palabras')})}" alt=""/>
+            </div>
+            <div class="hero-libro hero-libro--front" data-depth="22">
+                <img data-img-ck="libro-3" th:src="@{/contenido/imagen/libro-3(v=${imgV.get('libro-3')})}" alt=""/>
+            </div>
+            <span class="hero-float hero-float--1">&#127891;</span>
+            <span class="hero-float hero-float--2">&#128172;</span>
+        </div>
+    </div>
+</header>
+
+<!-- ============================================================
+     NUESTRA COLECCION DE LIBROS
+     ============================================================ -->
+<section class="section libros-section" id="libros">
+    <h2 class="reveal" data-ck="landing.books.title" th:text="#{landing.books.title}">Nuestra coleccion de libros</h2>
+    <p class="section-lead reveal" data-ck="landing.books.lead" th:text="#{landing.books.lead}">Material propio, creado por nuestro equipo pedagogico</p>
+
+    <div class="libros-shelf">
+        <div class="libro-card reveal">
+            <div class="libro-card-tilt" data-parallax="0.02">
+                <img data-img-ck="libro-1" th:src="@{/contenido/imagen/libro-1(v=${imgV.get('libro-1')})}" alt="Viva Latinoamerica 1"/>
+            </div>
+            <p data-ck="landing.books.1.caption" th:text="#{landing.books.1.caption}">Nivel A1 - A2</p>
+        </div>
+        <div class="libro-card reveal">
+            <div class="libro-card-tilt" data-parallax="0.05">
+                <img data-img-ck="libro-2" th:src="@{/contenido/imagen/libro-2(v=${imgV.get('libro-2')})}" alt="Viva Latinoamerica 2"/>
+            </div>
+            <p data-ck="landing.books.2.caption" th:text="#{landing.books.2.caption}">Nivel A2 - B1</p>
+        </div>
+        <div class="libro-card reveal">
+            <div class="libro-card-tilt" data-parallax="0.02">
+                <img data-img-ck="libro-3" th:src="@{/contenido/imagen/libro-3(v=${imgV.get('libro-3')})}" alt="Viva Latinoamerica 3"/>
+            </div>
+            <p data-ck="landing.books.3.caption" th:text="#{landing.books.3.caption}">Nivel B1 - B2</p>
+        </div>
+        <div class="libro-card reveal">
+            <div class="libro-card-tilt" data-parallax="0.05">
+                <img data-img-ck="libro-palabras" th:src="@{/contenido/imagen/libro-palabras(v=${imgV.get('libro-palabras')})}" alt="Palabras y expresiones utiles"/>
+            </div>
+            <p data-ck="landing.books.palabras.caption" th:text="#{landing.books.palabras.caption}">Vocabulario en contexto</p>
+        </div>
+        <div class="libro-card reveal">
+            <div class="libro-card-tilt" data-parallax="0.02">
+                <img data-img-ck="libro-survival" th:src="@{/contenido/imagen/libro-survival(v=${imgV.get('libro-survival')})}" alt="Survival Spanish"/>
+            </div>
+            <p data-ck="landing.books.survival.caption" th:text="#{landing.books.survival.caption}">Frases esenciales</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     BANNER PROMOCIONAL
+     ============================================================ -->
+<section class="promo-band" data-bg-ck="fondo-promo" data-bg-var="--promo-bg" data-bg-class="promo-band--fondo-custom"
+         th:with="fondoPromoUrl=${imgV.containsKey('fondo-promo')} ? @{/contenido/imagen/fondo-promo(v=${imgV.get('fondo-promo')})} : null"
+         th:classappend="'promo-band--' + ${#strings.toLowerCase(promoTema)} + (${fondoPromoUrl != null} ? ' promo-band--fondo-custom' : '')"
+         th:style="${fondoPromoUrl != null} ? ('--promo-bg:url(' + ${fondoPromoUrl} + ')') : null">
+    <div class="promo-inner reveal">
+        <div class="promo-gift" aria-hidden="true">&#127873;</div>
+        <div class="promo-text">
+            <p class="promo-title" data-ck="landing.promo.title" th:text="#{landing.promo.title}">Unete hoy y comienza tu aventura</p>
+            <p class="promo-sub" data-ck="landing.promo.subtitle" th:text="#{landing.promo.subtitle}">Registrate ahora...</p>
+        </div>
+        <div class="promo-perks">
+            <span><span class="promo-perk-icon">&#9989;</span><span data-ck="landing.promo.perk.1" th:text="#{landing.promo.perk.1}">Clase gratuita</span></span>
+            <span><span class="promo-perk-icon">&#9989;</span><span data-ck="landing.promo.perk.2" th:text="#{landing.promo.perk.2}">Guia descargable</span></span>
+            <span><span class="promo-perk-icon">&#9989;</span><span data-ck="landing.promo.perk.3" th:text="#{landing.promo.perk.3}">Acceso a la comunidad</span></span>
+        </div>
+        <div class="promo-cta-wrap">
+            <a class="btn btn-primary btn-sm" th:href="@{/auth/register}" data-ck="landing.promo.cta" th:text="#{landing.promo.cta}">Crear mi cuenta</a>
+            <div class="promo-countdown" id="promoCountdown">
+                <span class="promo-countdown-label" data-ck="landing.promo.countdown.label" th:text="#{landing.promo.countdown.label}">Oferta por tiempo limitado</span>
+                <div class="promo-countdown-nums">
+                    <div><span id="cdDays">00</span><small th:text="#{countdown.days}">Dias</small></div>
+                    <div><span id="cdHours">00</span><small th:text="#{countdown.hours}">Horas</small></div>
+                    <div><span id="cdMinutes">00</span><small th:text="#{countdown.minutes}">Min</small></div>
+                    <div><span id="cdSeconds">00</span><small th:text="#{countdown.seconds}">Seg</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     COMO FUNCIONA
+     ============================================================ -->
+<section class="section" id="metodologia">
+    <h2 class="reveal" data-ck="landing.how.title" th:text="#{landing.how.title}">Como funciona?</h2>
+    <p class="section-lead reveal" data-ck="landing.how.lead" th:text="#{landing.how.lead}">Aprender es mas facil de lo que piensas</p>
+
+    <div class="how-flow">
+        <div class="how-step reveal">
+            <div class="how-step-num">1</div>
+            <h3 data-ck="landing.how.step1.title" th:text="#{landing.how.step1.title}">Elige tu idioma y plan</h3>
+            <p class="text-muted" data-ck="landing.how.step1.desc" th:text="#{landing.how.step1.desc}">Registrate...</p>
+        </div>
+        <div class="how-step reveal">
+            <div class="how-step-num">2</div>
+            <h3 data-ck="landing.how.step2.title" th:text="#{landing.how.step2.title}">Agenda tus clases</h3>
+            <p class="text-muted" data-ck="landing.how.step2.desc" th:text="#{landing.how.step2.desc}">Reserva horarios...</p>
+        </div>
+        <div class="how-step reveal">
+            <div class="how-step-num">3</div>
+            <h3 data-ck="landing.how.step3.title" th:text="#{landing.how.step3.title}">Practica y mejora cada dia</h3>
+            <p class="text-muted" data-ck="landing.how.step3.desc" th:text="#{landing.how.step3.desc}">Asiste a tus clases...</p>
+        </div>
+        <div class="how-step reveal">
+            <div class="how-step-num">4</div>
+            <h3 data-ck="landing.how.step4.title" th:text="#{landing.how.step4.title}">Alcanza tus metas y certificate</h3>
+            <p class="text-muted" data-ck="landing.how.step4.desc" th:text="#{landing.how.step4.desc}">Avanza de nivel...</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     IDIOMAS / CURSOS
+     ============================================================ -->
+<section class="section" id="cursos" style="background:#fff;border-radius:20px;">
+    <h2 class="reveal" data-ck="landing.languages.title" th:text="#{landing.languages.title}">Elige tu idioma</h2>
+    <p class="section-lead reveal" data-ck="landing.languages.lead" th:text="#{landing.languages.lead}">Clases en vivo...</p>
+    <div class="grid grid-3">
+        <div class="card lang-card lang-card--es reveal">
+            <div class="lang-card-media">
+                <img class="lang-flag-img" data-img-ck="flag-es" th:src="@{/contenido/imagen/flag-es(v=${imgV.get('flag-es')})}" alt="Español">
+                <span class="lang-card-badge">ES</span>
+            </div>
+            <div class="lang-card-body">
+                <h3 th:text="#{lang.spanish}">Espanol</h3>
+                <p class="text-muted" data-ck="landing.lang.spanish.desc" th:text="#{landing.lang.spanish.desc}">Domina el espanol...</p>
+                <a class="btn btn-outline btn-sm" th:href="@{/auth/register}" data-ck="landing.lang.cta" th:text="#{landing.lang.cta}">Ver curso</a>
+            </div>
+        </div>
+        <div class="card lang-card lang-card--fr reveal">
+            <div class="lang-card-media">
+                <img class="lang-flag-img" data-img-ck="flag-fr" th:src="@{/contenido/imagen/flag-fr(v=${imgV.get('flag-fr')})}" alt="Francés">
+                <span class="lang-card-badge">FR</span>
+            </div>
+            <div class="lang-card-body">
+                <h3 th:text="#{lang.french}">Frances</h3>
+                <p class="text-muted" data-ck="landing.lang.french.desc" th:text="#{landing.lang.french.desc}">Aprende frances...</p>
+                <a class="btn btn-outline btn-sm" th:href="@{/auth/register}" data-ck="landing.lang.cta" th:text="#{landing.lang.cta}">Ver curso</a>
+            </div>
+        </div>
+        <div class="card lang-card lang-card--en reveal">
+            <div class="lang-card-media">
+                <img class="lang-flag-img" data-img-ck="flag-en" th:src="@{/contenido/imagen/flag-en(v=${imgV.get('flag-en')})}" alt="Inglés">
+                <span class="lang-card-badge">EN</span>
+            </div>
+            <div class="lang-card-body">
+                <h3 th:text="#{lang.english}">Ingles</h3>
+                <p class="text-muted" data-ck="landing.lang.english.desc" th:text="#{landing.lang.english.desc}">Ingles practico...</p>
+                <a class="btn btn-outline btn-sm" th:href="@{/auth/register}" data-ck="landing.lang.cta" th:text="#{landing.lang.cta}">Ver curso</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     CARACTERISTICAS
+     ============================================================ -->
+<section class="section">
+    <h2 class="reveal" data-ck="landing.features.title" th:text="#{landing.features.title}">Por que elegir Viva Idiomas</h2>
+    <p class="section-lead reveal" data-ck="landing.features.lead" th:text="#{landing.features.lead}">Una experiencia moderna...</p>
+    <div class="grid grid-4">
+        <div class="feature reveal">
+            <div class="feature-icon">&#128105;&#8205;&#127979;</div>
+            <h3 data-ck="feature.1.title" th:text="#{feature.1.title}">Profesores dedicados</h3>
+            <p class="text-muted" data-ck="feature.1.desc" th:text="#{feature.1.desc}">Docentes comprometidos...</p>
+        </div>
+        <div class="feature reveal">
+            <div class="feature-icon">&#9200;</div>
+            <h3 data-ck="feature.2.title" th:text="#{feature.2.title}">Horarios flexibles</h3>
+            <p class="text-muted" data-ck="feature.2.desc" th:text="#{feature.2.desc}">Elige las clases...</p>
+        </div>
+        <div class="feature reveal">
+            <div class="feature-icon">&#128218;</div>
+            <h3 data-ck="feature.3.title" th:text="#{feature.3.title}">Material gratuito</h3>
+            <p class="text-muted" data-ck="feature.3.desc" th:text="#{feature.3.desc}">Accede a guias...</p>
+        </div>
+        <div class="feature reveal">
+            <div class="feature-icon">&#129309;</div>
+            <h3 data-ck="feature.4.title" th:text="#{feature.4.title}">Comunidad solidaria</h3>
+            <p class="text-muted" data-ck="feature.4.desc" th:text="#{feature.4.desc}">Aprende en un entorno...</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     PRECIOS
+     ============================================================ -->
+<section class="section" id="precios">
+    <h2 class="reveal" data-ck="landing.pricing.title" th:text="#{landing.pricing.title}">Planes para cada meta</h2>
+    <p class="section-lead reveal" data-ck="landing.pricing.lead" th:text="#{landing.pricing.lead}">Elige el ritmo que se adapta a ti</p>
+    <div class="grid grid-3 pricing-grid">
+        <div class="card pricing-card reveal">
+            <h3 data-ck="pricing.basic.name" th:text="#{pricing.basic.name}">Basico</h3>
+            <p class="text-muted pricing-desc" data-ck="pricing.basic.desc" th:text="#{pricing.basic.desc}">Para practicar por tu cuenta.</p>
+            <p class="pricing-price"><span data-ck="pricing.basic.price" th:text="#{pricing.basic.price}">S/ 99</span><small data-ck="pricing.basic.period" th:text="#{pricing.basic.period}">/mes</small></p>
+            <ul class="pricing-features">
+                <li data-ck="pricing.basic.f1" th:text="#{pricing.basic.f1}">2 clases grupales por semana</li>
+                <li data-ck="pricing.basic.f2" th:text="#{pricing.basic.f2}">Material de estudio digital</li>
+                <li data-ck="pricing.basic.f3" th:text="#{pricing.basic.f3}">Acceso a la comunidad</li>
+                <li data-ck="pricing.basic.f4" th:text="#{pricing.basic.f4}">Soporte por correo</li>
+            </ul>
+            <a class="btn btn-outline btn-block" th:href="@{/auth/register}" data-ck="pricing.cta" th:text="#{pricing.cta}">Comenzar</a>
+        </div>
+        <div class="card pricing-card pricing-card--featured reveal">
+            <span class="pricing-badge" data-ck="pricing.standard.badge" th:text="#{pricing.standard.badge}">Mas popular</span>
+            <h3 data-ck="pricing.standard.name" th:text="#{pricing.standard.name}">Estandar</h3>
+            <p class="text-muted pricing-desc" data-ck="pricing.standard.desc" th:text="#{pricing.standard.desc}">El equilibrio ideal.</p>
+            <p class="pricing-price"><span data-ck="pricing.standard.price" th:text="#{pricing.standard.price}">S/ 179</span><small data-ck="pricing.standard.period" th:text="#{pricing.standard.period}">/mes</small></p>
+            <ul class="pricing-features">
+                <li data-ck="pricing.standard.f1" th:text="#{pricing.standard.f1}">4 clases grupales por semana</li>
+                <li data-ck="pricing.standard.f2" th:text="#{pricing.standard.f2}">1 clase individual al mes</li>
+                <li data-ck="pricing.standard.f3" th:text="#{pricing.standard.f3}">Material de estudio digital</li>
+                <li data-ck="pricing.standard.f4" th:text="#{pricing.standard.f4}">Seguimiento de tu progreso</li>
+            </ul>
+            <a class="btn btn-primary btn-block" th:href="@{/auth/register}" data-ck="pricing.cta" th:text="#{pricing.cta}">Comenzar</a>
+        </div>
+        <div class="card pricing-card reveal">
+            <h3 data-ck="pricing.premium.name" th:text="#{pricing.premium.name}">Premium</h3>
+            <p class="text-muted pricing-desc" data-ck="pricing.premium.desc" th:text="#{pricing.premium.desc}">Acompanamiento continuo.</p>
+            <p class="pricing-price"><span data-ck="pricing.premium.price" th:text="#{pricing.premium.price}">S/ 299</span><small data-ck="pricing.premium.period" th:text="#{pricing.premium.period}">/mes</small></p>
+            <ul class="pricing-features">
+                <li data-ck="pricing.premium.f1" th:text="#{pricing.premium.f1}">Clases individuales ilimitadas</li>
+                <li data-ck="pricing.premium.f2" th:text="#{pricing.premium.f2}">Profesor asignado</li>
+                <li data-ck="pricing.premium.f3" th:text="#{pricing.premium.f3}">Material de estudio digital</li>
+                <li data-ck="pricing.premium.f4" th:text="#{pricing.premium.f4}">Certificado de nivel</li>
+            </ul>
+            <a class="btn btn-outline btn-block" th:href="@{/auth/register}" data-ck="pricing.cta" th:text="#{pricing.cta}">Comenzar</a>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     ESTADISTICAS ANIMADAS
+     ============================================================ -->
+<section class="stats-band" data-bg-ck="fondo-stats" data-bg-var="--stats-bg" data-bg-class="stats-band--fondo-custom"
+         th:with="fondoStatsUrl=${imgV.containsKey('fondo-stats')} ? @{/contenido/imagen/fondo-stats(v=${imgV.get('fondo-stats')})} : null"
+         th:classappend="${fondoStatsUrl != null} ? 'stats-band--fondo-custom' : ''"
+         th:style="${fondoStatsUrl != null} ? ('--stats-bg:url(' + ${fondoStatsUrl} + ')') : null">
+    <h2 class="reveal" style="color:#fff" th:text="#{landing.stats.title}">Nuestro impacto</h2>
+    <div class="grid grid-4 mt-3">
+        <div>
+            <div class="big-num counter" th:attr="data-target=${totalTeachers}" th:text="${totalTeachers}">0</div>
+            <div class="big-label" th:text="#{stats.teachers}">Profesores</div>
+        </div>
+        <div>
+            <div class="big-num counter" th:attr="data-target=${totalStudents}" th:text="${totalStudents}">0</div>
+            <div class="big-label" th:text="#{stats.students}">Alumnos</div>
+        </div>
+        <div>
+            <div class="big-num counter" th:attr="data-target=${totalClasses}" th:text="${totalClasses}">0</div>
+            <div class="big-label" th:text="#{stats.classes}">Clases activas</div>
+        </div>
+        <div>
+            <div class="big-num counter" th:attr="data-target=${totalMaterials}" th:text="${totalMaterials}">0</div>
+            <div class="big-label" th:text="#{stats.materials}">Materiales</div>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     TESTIMONIOS
+     ============================================================ -->
+<section class="section" id="testimonios">
+    <h2 class="reveal" data-ck="landing.testimonials.title" th:text="#{landing.testimonials.title}">Lo que dicen nuestros alumnos</h2>
+    <div class="grid grid-3 mt-3">
+        <div class="card testimonial reveal">
+            <div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p class="quote">&#8220;<span data-ck="testimonial.1.quote" th:text="#{testimonial.1.quote}">Cita</span>&#8221;</p>
+            <p class="who" data-ck="testimonial.1.who" th:text="#{testimonial.1.who}">Lucia</p>
+        </div>
+        <div class="card testimonial reveal">
+            <div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p class="quote">&#8220;<span data-ck="testimonial.2.quote" th:text="#{testimonial.2.quote}">Cita</span>&#8221;</p>
+            <p class="who" data-ck="testimonial.2.who" th:text="#{testimonial.2.who}">Carlos</p>
+        </div>
+        <div class="card testimonial reveal">
+            <div class="stars" aria-hidden="true">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <p class="quote">&#8220;<span data-ck="testimonial.3.quote" th:text="#{testimonial.3.quote}">Cita</span>&#8221;</p>
+            <p class="who" data-ck="testimonial.3.who" th:text="#{testimonial.3.who}">Maria</p>
+        </div>
+    </div>
+</section>
+
+<!-- ============================================================
+     ZONA DE DISENO LIBRE (agregada desde "Contenido del sitio": bloques de
+     texto o imagenes que el admin puede arrastrar y rotar a su gusto,
+     ademas de los campos fijos del diseno)
+     ============================================================ -->
+<section class="section custom-section-public" th:if="${(not #lists.isEmpty(seccionesPersonalizadas)) or modoEdicion}">
+    <div class="cs-canvas" th:classappend="${modoEdicion} ? 'cs-canvas--edit'" id="csCanvas">
+        <div th:each="s : ${seccionesPersonalizadas}" class="cs-canvas-item"
+             th:classappend="${s.imagen} ? 'cs-canvas-item--imagen' : 'cs-canvas-item--texto'"
+             th:attr="data-cs-id=${s.id},data-rotacion=${s.rotacion}"
+             th:style="'left:' + ${s.posX} + '%; top:' + ${s.posY} + '%; width:' + ${s.ancho} + '%; transform: rotate(' + ${s.rotacion} + 'deg);'">
+
+            <!-- Controles: solo existen en el editor visual, nunca en la pagina publica. Mover
+                 y rotar se guardan solos al soltar (AJAX); eliminar es un form normal. -->
+            <div class="cs-item-controls" th:if="${modoEdicion}">
+                <button type="button" class="cs-item-btn cs-drag-handle" title="Mover">&#10021;</button>
+                <button type="button" class="cs-item-btn cs-rotate-handle" title="Rotar">&#8635;</button>
+                <form th:action="@{'/admin/contenido/secciones/' + ${s.id} + '/eliminar'}" method="post"
+                      th:attr="data-confirm=#{admin.contenido.secciones.confirmarEliminar}">
+                    <button type="submit" class="cs-item-btn cs-item-btn--danger" title="Eliminar">&#10005;</button>
+                </form>
+            </div>
+
+            <div th:if="${!s.imagen}" class="cs-item-content">
+                <h3 th:if="${s.titulo}" th:attr="data-ck='cs-titulo-' + ${s.id}" th:text="${s.titulo}">Titulo</h3>
+                <p th:attr="data-ck='cs-texto-' + ${s.id}" th:text="${s.texto}">Texto</p>
+            </div>
+            <img th:if="${s.imagen}" class="cs-item-img"
+                 th:src="@{/contenido/seccion-imagen/{id}(id=${s.id},v=${s.imagenVersion})}" alt=""/>
+        </div>
+    </div>
+
+    <!-- Barra para agregar texto o imagen nuevos: solo en el editor visual. Son forms
+         reales (no AJAX): agregar un elemento es estructural, se aplica al instante y
+         aparece en el lienzo listo para arrastrar. -->
+    <div th:if="${modoEdicion}" class="cs-toolbar">
+        <form th:action="@{/admin/contenido/secciones}" method="post" class="cs-toolbar-form">
+            <input type="text" name="titulo" maxlength="200" th:placeholder="#{admin.contenido.secciones.tituloCampo}"/>
+            <input type="text" name="texto" required maxlength="4000" th:placeholder="#{admin.contenido.secciones.textoCampo}"/>
+            <button type="submit" class="btn btn-outline btn-sm" th:text="#{admin.contenido.secciones.agregarTexto}">Agregar texto</button>
+        </form>
+        <form th:action="@{/admin/contenido/secciones/imagen}" method="post" enctype="multipart/form-data" class="cs-toolbar-form">
+            <input type="file" name="archivo" accept="image/png,image/jpeg,image/gif,image/webp" required/>
+            <button type="submit" class="btn btn-outline btn-sm" th:text="#{admin.contenido.secciones.agregarImagen}">Agregar imagen</button>
+        </form>
+    </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer">
+    <div class="footer-inner">
+        <div class="footer-col footer-col--brand">
+            <a class="brand brand--footer" th:href="@{/}">
+                <span th:replace="~{layout/fragments :: logomark}"></span>
+                <span class="brand-text">VIVA <span>IDIOMAS</span></span>
+            </a>
+            <p data-ck="footer.about" th:text="#{footer.about}">Viva Idiomas empodera...</p>
+        </div>
+        <div class="footer-col">
+            <p class="footer-col-title" data-ck="footer.nav.title" th:text="#{footer.nav.title}">Enlaces</p>
+            <a th:href="@{/}" data-ck="nav.home" th:text="#{nav.home}">Inicio</a>
+            <a href="#cursos" data-ck="nav.courses" th:text="#{nav.courses}">Cursos</a>
+            <a href="#metodologia" data-ck="nav.methodology" th:text="#{nav.methodology}">Metodologia</a>
+            <a href="#precios" data-ck="nav.pricing" th:text="#{nav.pricing}">Precios</a>
+            <a href="#testimonios" data-ck="nav.testimonials" th:text="#{nav.testimonials}">Testimonios</a>
+        </div>
+        <div class="footer-col">
+            <p class="footer-col-title" data-ck="footer.languages.title" th:text="#{footer.languages.title}">Idiomas</p>
+            <a href="#cursos" th:text="#{lang.spanish}">Espanol</a>
+            <a href="#cursos" th:text="#{lang.french}">Frances</a>
+            <a href="#cursos" th:text="#{lang.english}">Ingles</a>
+        </div>
+        <div class="footer-col">
+            <p class="footer-col-title" data-ck="footer.contact.title" th:text="#{footer.contact.title}">Contacto</p>
+            <a href="mailto:hola@vivaidiomas.com">hola@vivaidiomas.com</a>
+            <span class="footer-plain">Lima &amp; Iquitos, Peru</span>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <span>&copy; 2026 Viva Idiomas.</span>
+        <span data-ck="footer.rights" th:text="#{footer.rights}">Todos los derechos reservados.</span>
+    </div>
+</footer>
+
+<!-- Boton flotante "volver arriba": solo presentacion, no toca contenido ni logica -->
+<button type="button" class="back-to-top" id="backToTop" aria-label="Volver arriba" title="Volver arriba">&#8593;</button>
+
+<!-- Contadores animados -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        // Barra de progreso de lectura + boton "volver arriba" (solo presentacion)
+        const progressBar = document.getElementById('scrollProgressBar');
+        const backToTop = document.getElementById('backToTop');
+        const updateScrollUI = () => {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+            if (progressBar) progressBar.style.width = pct + '%';
+            if (backToTop) backToTop.classList.toggle('show', scrollTop > 480);
+        };
+        updateScrollUI();
+        window.addEventListener('scroll', updateScrollUI, { passive: true });
+        if (backToTop) {
+            backToTop.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+            });
+        }
+
+        const counters = document.querySelectorAll('.counter');
+        const animate = (el) => {
+            el.classList.add('counting');
+            const target = parseInt(el.getAttribute('data-target'), 10) || 0;
+            let current = 0;
+            const step = Math.max(1, Math.ceil(target / 40));
+            const timer = setInterval(() => {
+                current += step;
+                if (current >= target) { current = target; clearInterval(timer); }
+                el.textContent = current;
+            }, 30);
+        };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(e => { if (e.isIntersecting) { animate(e.target); observer.unobserve(e.target); } });
+        }, { threshold: 0.4 });
+        counters.forEach(c => observer.observe(c));
+
+        // Cuenta regresiva decorativa de la oferta de bienvenida
+        const cd = document.getElementById('promoCountdown');
+        if (cd) {
+            const target = Date.now() + (2 * 24 * 60 * 60 * 1000) + (14 * 60 * 60 * 1000) + (36 * 60 * 1000);
+            const els = {
+                d: document.getElementById('cdDays'),
+                h: document.getElementById('cdHours'),
+                m: document.getElementById('cdMinutes'),
+                s: document.getElementById('cdSeconds')
+            };
+            const pad = (n) => String(n).padStart(2, '0');
+            const tick = () => {
+                const diff = Math.max(0, target - Date.now());
+                const totalSec = Math.floor(diff / 1000);
+                els.d.textContent = pad(Math.floor(totalSec / 86400));
+                els.h.textContent = pad(Math.floor((totalSec % 86400) / 3600));
+                els.m.textContent = pad(Math.floor((totalSec % 3600) / 60));
+                els.s.textContent = pad(totalSec % 60);
+            };
+            tick();
+            setInterval(tick, 1000);
+        }
+
+        // Aparicion progresiva de secciones al hacer scroll (mejora visual,
+        // no afecta el contenido: si el navegador no soporta IntersectionObserver
+        // los elementos quedan visibles desde el inicio).
+        if ('IntersectionObserver' in window) {
+            const revealEls = document.querySelectorAll('.reveal');
+            revealEls.forEach(el => el.classList.add('reveal-init'));
+
+            // Linea de "como funciona": se dibuja de izquierda a derecha cuando
+            // los pasos entran en pantalla (mismo mecanismo que .reveal, con su
+            // propio estado inicial para no romper el fallback sin IntersectionObserver).
+            const howFlow = document.querySelector('.how-flow');
+            if (howFlow) howFlow.classList.add('line-init');
+
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add('in-view');
+                        revealObserver.unobserve(e.target);
+                        if (howFlow && e.target.classList.contains('how-step')) {
+                            howFlow.classList.add('in-view');
+                        }
+                    }
+                });
+            }, { threshold: 0.15 });
+            revealEls.forEach(el => revealObserver.observe(el));
+        }
+
+        // --- Tilt 3D con el mouse: stack de libros del hero + tarjetas de la coleccion ---
+        // Cada libro gira levemente hacia donde apunta el cursor, como si fuera un objeto
+        // fisico sobre la mesa. Se desactiva si el usuario prefiere menos movimiento.
+        if (!prefersReducedMotion && window.matchMedia('(hover: hover)').matches) {
+            // "fuerza" puede ser un numero fijo, o una funcion que lo calcule en el
+            // momento (para el stack del hero, donde el libro que esta al frente
+            // cambia -y con el, cuanto debe girar- cada vez que se le da clic a otro).
+            const aplicarTilt = (contenedor, img, fuerza) => {
+                const obtenerFuerza = typeof fuerza === 'function' ? fuerza : () => fuerza;
+                contenedor.addEventListener('mousemove', (e) => {
+                    const rect = contenedor.getBoundingClientRect();
+                    const px = (e.clientX - rect.left) / rect.width;
+                    const py = (e.clientY - rect.top) / rect.height;
+                    const f = obtenerFuerza();
+                    const rotY = (px - 0.5) * f;
+                    const rotX = (0.5 - py) * f;
+                    img.style.transform = 'perspective(900px) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+                });
+                contenedor.addEventListener('mouseleave', () => { img.style.transform = ''; });
+            };
+
+            const heroLibros = document.getElementById('heroLibros');
+            if (heroLibros) {
+                heroLibros.querySelectorAll('.hero-libro').forEach((libro) => {
+                    const img = libro.querySelector('img');
+                    if (img) aplicarTilt(heroLibros, img, () => parseFloat(libro.getAttribute('data-depth')) || 12);
+                });
+            }
+
+            document.querySelectorAll('.libro-card-tilt').forEach((tilt) => {
+                const img = tilt.querySelector('img');
+                if (img) aplicarTilt(tilt, img, 18);
+            });
+        }
+
+        // --- Parallax suave al hacer scroll en la coleccion de libros ---
+        // Va en .libro-card-tilt (no en .libro-card, que ya usa transform para el
+        // efecto .reveal): asi los dos efectos no se pisan entre si.
+        const librosParallax = Array.from(document.querySelectorAll('.libro-card-tilt[data-parallax]'));
+        if (librosParallax.length && !prefersReducedMotion) {
+            let ultimoScroll = -1;
+            const actualizarParallax = () => {
+                const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                if (scrollTop === ultimoScroll) return;
+                ultimoScroll = scrollTop;
+                librosParallax.forEach((tilt) => {
+                    const velocidad = parseFloat(tilt.getAttribute('data-parallax')) || 0;
+                    tilt.style.transform = 'translateY(' + (scrollTop * velocidad * -0.15) + 'px)';
+                });
+            };
+            actualizarParallax();
+            window.addEventListener('scroll', actualizarParallax, { passive: true });
+        }
+
+        // --- Click en un libro del hero: pasa al frente, el que estaba al frente
+        // retrocede a su lugar. Funciona con mouse o touch, sin importar
+        // prefers-reduced-motion (es un cambio de estado, no una animacion continua). ---
+        const heroLibrosClic = document.getElementById('heroLibros');
+        if (heroLibrosClic) {
+            const roles = ['hero-libro--back', 'hero-libro--mid', 'hero-libro--front'];
+            const libros = Array.from(heroLibrosClic.querySelectorAll('.hero-libro'));
+            libros.forEach((libro) => {
+                libro.style.cursor = 'pointer';
+                libro.addEventListener('click', () => {
+                    const rolActual = roles.find((r) => libro.classList.contains(r));
+                    if (!rolActual || rolActual === 'hero-libro--front') return;
+                    const libroDelFrente = libros.find((l) => l.classList.contains('hero-libro--front'));
+                    if (!libroDelFrente) return;
+                    libro.classList.replace(rolActual, 'hero-libro--front');
+                    libroDelFrente.classList.replace('hero-libro--front', rolActual);
+
+                    // El "grado de giro" del tilt viaja con el rol (el que esta al
+                    // frente siempre reacciona mas fuerte al mouse), no con el libro.
+                    const depthLibro = libro.getAttribute('data-depth');
+                    const depthFrente = libroDelFrente.getAttribute('data-depth');
+                    libro.setAttribute('data-depth', depthFrente);
+                    libroDelFrente.setAttribute('data-depth', depthLibro);
+                });
+            });
+        }
+    });
+</script>
+
+<!-- Escena 3D del hero: la camara "vuela" en bucle por varias estaciones flotantes.
+     Progressive enhancement: si algo falla (sin WebGL, CDN caido, reduced-motion),
+     hero3d.js no hace nada y el hero se ve igual que siempre. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+<script th:src="@{/js/hero3d.js}" defer></script>
+
+<!-- ============================================================
+     EDITOR VISUAL EN LINEA: fragmento compartido (ver layout/fragments.html),
+     asi otras paginas (paneles de profesor/alumno/practicante/admin) lo pueden
+     incluir igual para ser editables desde /admin/contenido.
+     ============================================================ -->
+<div th:replace="~{layout/fragments :: visualEditorOverlay}"></div>
+
+<!-- ============================================================
+     FESTIVE EFFECTS (CANVAS)
+     ============================================================ -->
+<canvas id="festiveCanvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></canvas>
+<script th:inline="javascript">
+document.addEventListener("DOMContentLoaded", function() {
+    const canvas = document.getElementById('festiveCanvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    
+    window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    });
+
+    const date = new Date();
+    const month = date.getMonth(); // 0 = Jan, 9 = Oct, 11 = Dec
+    
+    // Determine season from server theme or fallback to month
+    let theme = /*[[${promoTema}]]*/ 'NORMAL';
+    if (!theme || theme === 'NORMAL') {
+        if (month === 9) theme = 'HALLOWEEN';
+        else if (month === 11 || month === 0) theme = 'CHRISTMAS';
+        else if (month === 1) theme = 'VALENTINES';
+        else theme = 'NORMAL';
+    }
+
+    if (theme === 'NORMAL') {
+        canvas.style.display = 'none';
+        return;
+    }
+
+    const particles = [];
+    const particleCount = theme === 'CHRISTMAS' ? 150 : (theme === 'HALLOWEEN' ? 40 : 60);
+
+    // Emojis or shapes
+    const emojis = {
+        'HALLOWEEN': ['🦇', '🎃', '🕸️', '👻'],
+        'CHRISTMAS': ['❄️', '⛄', '✨', '❄️'],
+        'VALENTINES': ['❤️', '💖', '🌸', '✨']
+    };
+    const currentEmojis = emojis[theme] || emojis['CHRISTMAS'];
+
+    for (let i = 0; i < particleCount; i++) {
+        particles.push({
+            x: Math.random() * width,
+            y: Math.random() * height - height,
+            size: Math.random() * 20 + 10,
+            speedY: Math.random() * 2 + 1,
+            speedX: Math.random() * 2 - 1,
+            emoji: currentEmojis[Math.floor(Math.random() * currentEmojis.length)],
+            rotation: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 5
+        });
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        
+        particles.forEach(p => {
+            p.y += p.speedY;
+            p.x += p.speedX;
+            p.rotation += p.rotSpeed;
+            
+            // Wobble effect for snow/leaves
+            if (theme === 'CHRISTMAS' || theme === 'VALENTINES') {
+                p.x += Math.sin(p.y * 0.02) * 0.5;
+            }
+
+            if (p.y > height) {
+                p.y = -50;
+                p.x = Math.random() * width;
+            }
+            if (p.x > width + 50) p.x = -50;
+            if (p.x < -50) p.x = width + 50;
+
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation * Math.PI / 180);
+            ctx.font = p.size + "px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            // add slight transparency
+            ctx.globalAlpha = 0.8;
+            ctx.fillText(p.emoji, 0, 0);
+            ctx.restore();
+        });
+        
+        requestAnimationFrame(animate);
+    }
+    
+    animate();
+});
+</script>
+
+<!-- ============================================================
+     APPLE-STYLE SCROLL OBSERVER (JS)
+     ============================================================ -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Agregar clases de animacion automaticamente a los elementos clave
+    const headings = document.querySelectorAll('.seccion-titulo, .hero-copy h1');
+    const paragraphs = document.querySelectorAll('.seccion-bajada, .hero-copy p, .metodologia-paso p');
+    const cards = document.querySelectorAll('.curso-card, .testimonio-card, .metodologia-paso, .faq-item');
+    const visuals = document.querySelectorAll('.metodologia-visual, .hero-visual');
+    const buttons = document.querySelectorAll('.btn');
+
+    headings.forEach(el => el.classList.add('reveal-up'));
+    paragraphs.forEach(el => el.classList.add('reveal-up'));
+    buttons.forEach(el => el.classList.add('reveal-up'));
+    cards.forEach(el => el.classList.add('reveal-scale'));
+    
+    // Animar las imagenes laterales segun su posicion
+    document.querySelectorAll('.metodologia-visual').forEach((el, index) => {
+        el.classList.add(index % 2 === 0 ? 'reveal-right' : 'reveal-left');
+    });
+
+    // 2. Configurar el IntersectionObserver con rootMargin para que se active justo antes de entrar
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px 0px -10% 0px',
+        threshold: 0.1
+    };
+
+    const scrollObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                // Agregar un pequeno delay en cascada si hay varios elementos
+                setTimeout(() => {
+                    entry.target.classList.add('is-revealed');
+                }, 50);
+                observer.unobserve(entry.target);
+            }
+        });
+    }, observerOptions);
+
+    // 3. Observar todos los elementos configurados
+    const revealElements = document.querySelectorAll('.reveal-up, .reveal-scale, .reveal-left, .reveal-right');
+    revealElements.forEach(el => {
+        scrollObserver.observe(el);
+    });
+});
+</script>
+
+</body>
+
+</html>

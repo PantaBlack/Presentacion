@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.materials.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('materials')}"></aside>
+
+    <main class="content content--admin">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('book','ico-sm')}"></svg>
+                    <span th:text="#{admin.portal}">Portal Administrador</span>
+                </span>
+                <h1 th:text="#{admin.materials.title}">Todos los materiales</h1>
+                <p th:text="#{admin.materials.subtitle}">Recursos compartidos por los profesores</p>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <section class="panel">
+            <div class="panel-body">
+                <form method="get" class="flex gap wrap" style="align-items:flex-end">
+                    <div class="form-group" style="margin:0">
+                        <label th:text="#{common.teacher}">Profesor</label>
+                        <select name="teacherId" class="form-control">
+                            <option value="" th:text="#{common.all}">Todos</option>
+                            <option th:each="t : ${teachers}" th:value="${t.id}" th:text="${t.fullName}"
+                                    th:selected="${teacherFilter != null && teacherFilter == t.id}">Prof</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0">
+                        <label th:text="#{common.category}">Categoria</label>
+                        <select name="category" class="form-control">
+                            <option value="" th:text="#{common.all}">Todos</option>
+                            <option th:each="c : ${categories}" th:value="${c}" th:text="#{'cat.' + ${c}}"
+                                    th:selected="${categoryFilter == c.name()}">Cat</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0">
+                        <label th:text="#{common.language}">Idioma</label>
+                        <select name="language" class="form-control">
+                            <option value="" th:text="#{common.all}">Todos</option>
+                            <option th:each="l : ${languages}" th:value="${l}" th:text="#{'lang.' + ${l}}"
+                                    th:selected="${languageFilter == l.name()}">Idioma</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" th:text="#{common.filter}">Filtrar</button>
+                </form>
+            </div>
+        </section>
+
+        <div class="grid grid-auto" th:if="${!materials.isEmpty()}">
+            <div class="card" th:each="m : ${materials}">
+                <div class="flex-between" style="align-items:flex-start">
+                    <div style="font-size:2rem;line-height:1" th:text="${m.icon}">📄</div>
+                    <span class="chip" th:classappend="${m.visibility.name() == 'TEACHERS_ONLY'} ? 'chip--warn' : 'chip--success'"
+                          th:text="#{'material.visibility.short.' + ${m.visibility}}">Visibilidad</span>
+                </div>
+                <h3 style="margin:10px 0 4px" th:text="${m.title}">Titulo</h3>
+                <p class="text-muted" style="font-size:.86rem" th:text="${m.description}">Descripcion</p>
+                <div class="flex gap wrap mb-1">
+                    <span class="chip chip--lang"
+                          th:classappend="${m.language.name() == 'FRENCH'} ? 'chip--lang-fr' : (${m.language.name() == 'ENGLISH'} ? 'chip--lang-en' : '')"
+                          th:text="#{'lang.' + ${m.language}}">Idioma</span>
+                    <span class="chip" th:text="#{'cat.' + ${m.category}}">Categoria</span>
+                </div>
+                <p class="text-muted" style="font-size:.82rem" th:text="${m.teacher.fullName}">Profesor</p>
+                <div class="flex gap wrap" style="font-size:.78rem;color:var(--gray)" th:if="${m.hasFile}">
+                    <span>
+                        <svg th:replace="~{layout/fragments :: icon('file','ico-sm')}"></svg>
+                        <span th:text="${m.fileName}">archivo.pdf</span> &middot; <span th:text="${m.fileSizeLabel}">1 MB</span>
+                    </span>
+                </div>
+                <div class="flex gap wrap mt-2">
+                    <a class="btn btn-primary btn-sm" th:if="${m.hasFile}" th:href="@{'/materiales/' + ${m.id} + '/descargar'}"
+                       th:text="#{material.download}">Descargar</a>
+                    <a class="btn btn-outline btn-sm" th:if="${m.externalLink}" th:href="${m.externalLink}"
+                       target="_blank" rel="noopener" th:text="#{common.view}">Ver</a>
+                    <form th:action="@{'/admin/materials/' + ${m.id} + '/delete'}" method="post"
+                          th:attr="data-confirm=#{admin.activities.confirmDelete}">
+                        <button class="btn btn-danger btn-sm" th:text="#{common.delete}">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <th:block th:if="${materials.isEmpty()}">
+            <div th:replace="~{layout/fragments :: empty(#{common.none})}"></div>
+        </th:block>
+    </main>
+</div>
+<div th:replace="~{layout/fragments :: confirmScript}"></div>
+</body>
+</html>

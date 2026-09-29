@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Mis propuestas')}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: teacherSidebar('proposals')}"></aside>
+    <main class="content content--teacher">
+        <div class="flex-between wrap">
+            <div>
+                <h1 class="page-title" th:text="#{teacher.proposals.title}">Mis propuestas</h1>
+                <p class="page-subtitle" th:text="#{teacher.proposals.subtitle}">Envia y da seguimiento</p>
+            </div>
+            <button class="btn btn-primary" onclick="document.getElementById('newForm').classList.toggle('hidden')"
+                    th:text="'+ ' + #{teacher.proposals.new}">+ Nueva propuesta</button>
+        </div>
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <div id="newForm" class="card mb-3 hidden">
+            <h3 th:text="#{teacher.proposals.new}">Nueva propuesta</h3>
+            <form th:action="@{/teacher/proposals}" method="post">
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label th:text="#{common.type}">Tipo</label>
+                        <select name="type" class="form-control" required>
+                            <option th:each="t : ${types}" th:value="${t}" th:text="#{'ptype.' + ${t}}">Tipo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label th:text="#{common.title}">Titulo</label>
+                        <input type="text" name="title" class="form-control" required/>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label th:text="#{common.description}">Descripcion</label>
+                    <textarea name="description" class="form-control" rows="3" required></textarea>
+                </div>
+                <button class="btn btn-primary" th:text="#{common.send}">Enviar</button>
+            </form>
+        </div>
+
+        <div class="grid grid-auto" th:if="${!proposals.isEmpty()}">
+            <div class="card" th:each="p : ${proposals}">
+                <div class="flex-between">
+                    <span class="badge badge-role" th:text="#{'ptype.' + ${p.type}}">Tipo</span>
+                    <span class="badge" th:classappend="${p.status.name() == 'PENDING'} ? 'badge-pending' : (${p.status.name() == 'APPROVED'} ? 'badge-approved' : 'badge-rejected')"
+                          th:text="#{'pstatus.' + ${p.status}}">Estado</span>
+                </div>
+                <h3 style="margin:10px 0 6px" th:text="${p.title}">Titulo</h3>
+                <p class="text-muted" th:text="${p.description}">Descripcion</p>
+                <div class="alert alert-success" th:if="${p.adminComment}" style="margin-top:10px">
+                    &#128172; <span th:text="${p.adminComment}">Comentario del admin</span>
+                </div>
+            </div>
+        </div>
+        <p class="text-muted" th:if="${proposals.isEmpty()}" th:text="#{common.none}">Sin datos</p>
+    </main>
+</div>
+</body>
+</html>

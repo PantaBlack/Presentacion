@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{practicante.clases.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: practicanteSidebar('clases')}"></aside>
+    <main class="content content--practicante">
+        <div class="flex-between wrap">
+            <div>
+                <h1 class="page-title" th:text="#{practicante.clases.title}">Mis clases personalizadas</h1>
+                <p class="page-subtitle" th:text="#{practicante.clases.subtitle}">Clases 1 a 1</p>
+            </div>
+            <button class="btn btn-primary" onclick="document.getElementById('newForm').classList.toggle('hidden')"
+                    th:text="'+ ' + #{practicante.clases.add}">+ Agregar clase personalizada</button>
+        </div>
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <!-- Formulario nueva clase personalizada -->
+        <div id="newForm" class="card mb-3 hidden">
+            <h3 th:text="#{practicante.clases.add}">Agregar clase personalizada</h3>
+            <form th:action="@{/practicante/clases}" method="post">
+                <div class="grid grid-3">
+                    <div class="form-group">
+                        <label th:text="#{common.day}">Dia</label>
+                        <select name="dayOfWeek" class="form-control" required>
+                            <option th:each="d : ${days}" th:value="${d}" th:text="#{'day.' + ${d}}">Dia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Inicio</label>
+                        <input type="time" name="startTime" class="form-control" value="09:00" required/>
+                    </div>
+                    <div class="form-group">
+                        <label>Fin</label>
+                        <input type="time" name="endTime" class="form-control" value="10:00" required/>
+                    </div>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label th:text="#{common.subject}">Materia</label>
+                        <input type="text" name="subject" class="form-control" required/>
+                    </div>
+                    <div class="form-group">
+                        <label th:text="#{common.language}">Idioma</label>
+                        <select name="language" class="form-control" required>
+                            <option th:each="l : ${languages}" th:value="${l}" th:text="#{'lang.' + ${l}}">Idioma</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label th:text="#{practicante.clases.alumnos}">Alumnos</label>
+                    <input type="text" id="buscarAlumno" class="form-control mb-1" th:placeholder="#{common.search}" autocomplete="off"/>
+                    <div id="listaAlumnos" style="max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px 14px">
+                        <label th:each="a : ${alumnos}" class="fila-alumno" style="display:flex;align-items:center;gap:8px;padding:4px 0;font-weight:400;cursor:pointer">
+                            <input type="checkbox" name="alumnoIds" th:value="${a.id}"/>
+                            <span th:text="${a.fullName}">Alumno</span>
+                        </label>
+                        <p class="text-muted" style="margin:4px 0 0;font-size:.82rem" th:if="${alumnos.isEmpty()}"
+                           th:text="#{practicante.clases.alumnos.empty}">Todavia no hay alumnos registrados.</p>
+                    </div>
+                    <small class="text-muted" th:text="#{practicante.clases.alumnos.hint}">Marca a uno o varios alumnos: no hay limite.</small>
+                </div>
+                <div class="form-group">
+                    <label th:text="#{common.description}">Descripcion</label>
+                    <textarea name="description" class="form-control" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label th:text="#{teacher.schedules.meetLink}">Enlace de videollamada</label>
+                    <input type="url" name="meetLink" class="form-control" th:placeholder="#{teacher.schedules.meetLink.placeholder}"/>
+                    <small class="text-muted" th:text="#{teacher.schedules.meetLink.hint}">Opcional.</small>
+                </div>
+                <button class="btn btn-primary" th:text="#{common.save}">Guardar</button>
+            </form>
+        </div>
+
+        <!-- Mis clases personalizadas -->
+        <div class="grid grid-auto" th:if="${!clases.isEmpty()}">
+            <div class="card" th:each="s : ${clases}">
+                <div class="flex-between">
+                    <span class="badge badge-lang" th:text="#{'lang.' + ${s.language}}">Idioma</span>
+                    <span class="chip chip--primary" th:text="#{'day.' + ${s.dayOfWeek}} + ' ' + ${s.startTime} + '-' + ${s.endTime}">Dia</span>
+                </div>
+                <h3 style="margin:10px 0 4px" th:text="${s.subject}">Materia</h3>
+                <p class="text-muted" style="font-size:.85rem" th:text="${s.description}">Descripcion</p>
+
+                <div class="flex gap wrap mb-1">
+                    <span class="chip" th:each="e : ${scheduleService.findEnrollmentsBySchedule(s)}"
+                          th:text="'&#128100; ' + ${e.student.fullName}">Alumno</span>
+                </div>
+
+                <!-- Estado de esta semana: verde por defecto, rojo si se cancelo esta semana puntual -->
+                <div class="mt-1" th:if="${!canceladasEstaSemana.containsKey(s.id)}">
+                    <span class="chip chip--success" th:text="'&#128994; ' + #{semana.activa}">Activa esta semana</span>
+                    <button type="button" class="btn btn-outline btn-sm btn-cancelar-toggle mt-1" style="display:block"
+                            th:attr="data-target='cancelar-' + ${s.id}" th:text="'&#128308; ' + #{semana.cancelarBtn}">Cancelar esta semana</button>
+                    <form th:id="'cancelar-' + ${s.id}" class="hidden mt-1"
+                          th:action="@{'/practicante/clases/' + ${s.id} + '/cancelar-semana'}" method="post">
+                        <div class="flex gap" style="align-items:center">
+                            <input type="text" name="motivo" class="form-control" style="font-size:.76rem;padding:5px 8px"
+                                   th:placeholder="#{semana.motivoPlaceholder}" required/>
+                            <button class="btn btn-danger btn-sm" th:text="#{common.save}">Guardar</button>
+                        </div>
+                        <small class="text-muted" style="display:block;margin-top:4px" th:text="#{semana.motivoAutoReporte}">
+                            Esto se guarda tambien en tu reporte semanal.
+                        </small>
+                    </form>
+                </div>
+                <div class="mt-1" th:if="${canceladasEstaSemana.containsKey(s.id)}">
+                    <span class="chip chip--danger" th:text="'&#128308; ' + #{semana.canceladaEtiqueta} + ': ' + ${canceladasEstaSemana.get(s.id)}">Cancelada esta semana</span>
+                    <form th:action="@{'/practicante/clases/' + ${s.id} + '/reactivar-semana'}" method="post" class="mt-1">
+                        <button class="btn btn-outline btn-sm" th:text="'&#128994; ' + #{semana.reactivarBtn}">Reactivar</button>
+                    </form>
+                </div>
+
+                <div class="flex gap wrap mt-1">
+                    <a class="btn btn-outline btn-sm" th:href="@{'/practicante/clases/' + ${s.id} + '/alumnos'}"
+                       th:text="#{practicante.clases.gestionar}">Asistencia y notas</a>
+                    <button type="button" class="btn btn-outline btn-sm btn-gcal"
+                            th:attr="data-dia=${s.dayOfWeek},data-inicio=${s.startTime},data-fin=${s.endTime},data-materia=${s.subject},data-desc=${s.description},data-loc=${s.meetLink}"
+                            th:text="'&#128197; ' + #{common.addToCalendar}">Agregar a Google Calendar</button>
+                    <button type="button" class="btn btn-outline btn-sm btn-editar-toggle"
+                            th:attr="data-target='editar-' + ${s.id}" th:text="'&#9998; ' + #{common.edit}">Editar</button>
+                </div>
+
+                <!-- Editar clase: oculto hasta que se pulse "Editar" -->
+                <form th:id="'editar-' + ${s.id}" class="card mt-2 hidden" style="background:var(--gray-light)"
+                      th:action="@{'/practicante/clases/' + ${s.id} + '/editar'}" method="post">
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label th:text="#{common.day}">Dia</label>
+                            <select name="dayOfWeek" class="form-control" required>
+                                <option th:each="d : ${days}" th:value="${d}" th:selected="${d == s.dayOfWeek}" th:text="#{'day.' + ${d}}">Dia</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Inicio</label>
+                            <input type="time" name="startTime" class="form-control" th:value="${s.startTime}" required/>
+                        </div>
+                        <div class="form-group">
+                            <label>Fin</label>
+                            <input type="time" name="endTime" class="form-control" th:value="${s.endTime}" required/>
+                        </div>
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label th:text="#{common.subject}">Materia</label>
+                            <input type="text" name="subject" class="form-control" th:value="${s.subject}" required/>
+                        </div>
+                        <div class="form-group">
+                            <label th:text="#{common.language}">Idioma</label>
+                            <select name="language" class="form-control" required>
+                                <option th:each="l : ${languages}" th:value="${l}" th:selected="${l == s.language}" th:text="#{'lang.' + ${l}}">Idioma</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label th:text="#{common.description}">Descripcion</label>
+                        <textarea name="description" class="form-control" rows="2" th:text="${s.description}"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-sm" th:text="#{common.save}">Guardar</button>
+                </form>
+
+                <!-- Agregar un alumno mas -->
+                <form th:action="@{'/practicante/clases/' + ${s.id} + '/agregar-alumno'}" method="post" class="flex gap mt-2" style="align-items:center">
+                    <select name="alumnoId" class="form-control" style="font-size:.8rem" required>
+                        <option value="" disabled selected th:text="#{practicante.clases.agregarAlumno}">+ Agregar alumno</option>
+                        <option th:each="a : ${alumnos}" th:value="${a.id}" th:text="${a.fullName}">Alumno</option>
+                    </select>
+                    <button class="btn btn-outline btn-sm" th:text="#{common.add}">Agregar</button>
+                </form>
+
+                <form th:action="@{'/practicante/clases/' + ${s.id} + '/meet-link'}" method="post" class="flex gap mt-1" style="align-items:center">
+                    <input type="url" name="meetLink" class="form-control" style="font-size:.76rem;padding:5px 8px"
+                           th:value="${s.meetLink}" th:placeholder="#{teacher.schedules.meetLink.placeholder}"/>
+                    <button class="btn btn-outline btn-sm" th:text="#{teacher.schedules.meetLink.save}">Guardar enlace</button>
+                </form>
+                <a th:if="${s.meetLink}" class="chip chip--success mt-1" style="display:inline-flex"
+                   th:href="${s.meetLink}" target="_blank" rel="noopener"
+                   th:text="'&#128249; ' + #{teacher.schedules.meetLink.set}">Enlace guardado</a>
+
+                <form class="mt-2" th:action="@{'/practicante/clases/' + ${s.id} + '/delete'}" method="post"
+                      th:attr="data-confirm=#{admin.activities.confirmDelete}">
+                    <button class="btn btn-danger btn-sm btn-block" th:text="#{common.delete}">Eliminar</button>
+                </form>
+            </div>
+        </div>
+        <th:block th:if="${clases.isEmpty()}">
+            <div th:replace="~{layout/fragments :: empty(#{practicante.clases.empty})}"></div>
+        </th:block>
+    </main>
+</div>
+<div th:replace="~{layout/fragments :: confirmScript}"></div>
+<script th:src="@{/js/clases-comunes.js}"></script>
+</body>
+</html>

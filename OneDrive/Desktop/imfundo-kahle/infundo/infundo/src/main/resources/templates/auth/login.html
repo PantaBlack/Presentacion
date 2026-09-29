@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Login')}"></head>
+<body>
+<div class="auth-wrap">
+    <div class="auth-card fade-in">
+        <div class="auth-logo"><span th:replace="~{layout/fragments :: logomark}"></span></div>
+        <h2 th:text="#{login.title}">Bienvenido de nuevo</h2>
+        <p class="auth-sub" th:text="#{login.subtitle}">Ingresa a tu portal</p>
+
+        <!-- Mensajes -->
+        <div class="alert alert-danger" th:if="${param.error != null and param.error[0] == 'locked'}"
+             th:text="#{login.locked}">Cuenta bloqueada</div>
+        <div class="alert alert-danger" th:if="${param.error != null and param.error[0] == 'disabled'}"
+             th:text="#{login.disabled}">Cuenta deshabilitada</div>
+        <div class="alert alert-danger" th:if="${param.error != null and param.error[0] == 'true'}"
+             th:text="#{login.error}">Error</div>
+        <div class="alert alert-danger" th:if="${param.captchaError}" th:text="#{login.captchaError}">CAPTCHA</div>
+        <div class="alert alert-danger" th:if="${param.accessDenied}" th:text="#{login.accessDenied}">Sin permiso</div>
+        <div class="alert alert-success" th:if="${param.logout}" th:text="#{login.logout}">Logout</div>
+        <div class="alert alert-success" th:if="${successKey}" th:text="#{${successKey}}">OK</div>
+
+        <form th:action="@{/auth/login}" method="post">
+            <div class="form-group">
+                <label th:text="#{login.email}">Correo</label>
+                <input type="email" name="email" class="form-control" required autofocus/>
+            </div>
+            <div class="form-group">
+                <label th:text="#{login.password}">Contrasena</label>
+                <input type="password" name="password" class="form-control" required/>
+                <a class="text-muted" style="font-size:.8rem" th:href="@{/auth/forgot-password}" th:text="#{login.forgotPassword}">Olvidaste tu contrasena?</a>
+            </div>
+
+            <!-- Google reCAPTCHA -->
+            <div class="form-group">
+                <div class="g-recaptcha" th:attr="data-sitekey=${recaptchaSiteKey}"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" th:text="#{login.submit}">Iniciar sesion</button>
+        </form>
+
+        <p class="auth-footer">
+            <span th:text="#{login.noaccount}">No tienes cuenta?</span>
+            <a th:href="@{/auth/register}" th:text="#{login.register}">Registrate</a>
+        </p>
+        <p class="text-center mt-2"><a th:href="@{/}" th:text="#{common.back}">Volver</a></p>
+    </div>
+</div>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</body>
+</html>

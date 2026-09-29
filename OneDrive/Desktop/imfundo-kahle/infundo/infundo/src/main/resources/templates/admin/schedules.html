@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head(#{admin.schedules.title})}"></head>
+<body>
+<nav th:replace="~{layout/fragments :: appnav}"></nav>
+<div class="app-shell">
+    <aside th:replace="~{layout/fragments :: adminSidebar('schedules')}"></aside>
+    <main class="content content--admin">
+        <header class="page-head page-head--admin">
+            <div class="page-head-copy">
+                <span class="eyebrow">
+                    <svg th:replace="~{layout/fragments :: icon('calendar','ico-sm')}"></svg>
+                    <span th:text="#{admin.menu.schedules}">Horarios</span>
+                </span>
+                <h1 th:text="#{admin.schedules.title}">Todos los horarios</h1>
+                <p th:text="#{admin.schedules.subtitle}">Vista general de las clases programadas</p>
+            </div>
+        </header>
+
+        <div th:replace="~{layout/fragments :: flash}"></div>
+
+        <section class="panel">
+            <div class="panel-body">
+                <form th:action="@{/admin/schedules}" method="get" class="flex gap wrap" style="align-items:flex-end">
+                    <div class="form-group" style="margin:0;min-width:200px" th:if="${teachers != null}">
+                        <label th:text="#{common.teacher}">Profesor</label>
+                        <select name="teacherId" class="form-control">
+                            <option value="" th:text="#{common.all}">Todos</option>
+                            <option th:each="t : ${teachers}" th:value="${t.id}" th:text="${t.fullName}"
+                                    th:selected="${teacherFilter != null and teacherFilter == t.id}">Profesor</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;min-width:200px" th:if="${languages != null}">
+                        <label th:text="#{common.language}">Idioma</label>
+                        <select name="language" class="form-control">
+                            <option value="" th:text="#{common.all}">Todos</option>
+                            <option th:each="l : ${languages}" th:value="${l}" th:text="#{'lang.' + ${l}}"
+                                    th:selected="${languageFilter == l.name()}">Idioma</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;min-width:160px">
+                        <label th:text="#{common.day}">Dia</label>
+                        <select name="dayFilter" class="form-control">
+                            <option value="" th:text="#{common.all}">Todos</option>
+                            <option th:each="d : ${days}" th:value="${d}" th:text="#{'day.' + ${d}}"
+                                    th:selected="${dayFilter == d.name()}">Dia</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0">
+                        <label th:text="#{admin.schedules.horaBusqueda}">Buscar quien esta libre a esta hora</label>
+                        <input type="time" name="timeFilter" class="form-control" th:value="${timeFilter}"/>
+                    </div>
+                    <button class="btn btn-primary" th:text="#{common.filter}">Filtrar</button>
+                    <a th:if="${teacherFilter != null or (languageFilter != null and languageFilter != '') or (dayFilter != null and dayFilter != '') or (timeFilter != null and timeFilter != '')}"
+                       th:href="@{/admin/schedules}" class="btn btn-outline" th:text="#{admin.availability.clear}">Limpiar</a>
+                </form>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h3>
+                    <svg th:replace="~{layout/fragments :: icon('calendar','')}"></svg>
+                    <span th:text="#{admin.schedules.recent}">Horarios programados</span>
+                </h3>
+                <div class="flex gap wrap">
+                    <span class="chip chip--lang" th:text="#{lang.SPANISH}">Espanol</span>
+                    <span class="chip chip--lang-fr" th:text="#{lang.FRENCH}">Frances</span>
+                    <span class="chip chip--lang-en" th:text="#{lang.ENGLISH}">Ingles</span>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="agenda">
+                    <div class="agenda-col" th:each="d : ${T(com.imfundokahle.model.DayOfWeekEnum).values()}"
+                         th:with="daySchedules=${schedules == null ? {} : schedules.?[dayOfWeek != null and dayOfWeek.name() == #vars.d.name()]}">
+                        <h4 th:text="#{'day.' + ${d}}">Dia</h4>
+
+                        <div class="agenda-item" th:each="s : ${daySchedules}"
+                             th:with="taken=${scheduleService.countActiveEnrollments(s)}, cancelada=${canceladasEstaSemana.containsKey(s.id)}"
+                             th:classappend="(${s.language.name() == 'SPANISH'} ? 'agenda-item--es' :
+                                             (${s.language.name() == 'FRENCH'} ? 'agenda-item--fr' : 'agenda-item--en'))
+                                             + (${cancelada} ? ' agenda-item--cancelada' : '')">
+                            <span class="t" th:text="(${cancelada} ? '&#128308; ' : '&#128994; ') + ${s.startTime} + ' - ' + ${s.endTime}">Hora</span>
+                            <span class="s" th:text="${s.subject}">Materia</span>
+                            <span class="m" th:text="(${s.teacher != null} ? ${s.teacher.fullName} : '-')
+                                             + ' &middot; ' + #{'lang.' + ${s.language}}
+                                             + ' &middot; ' + ${taken} + '/' + ${s.maxStudents}
+                                             + (${s.personalizada} ? ' &middot; &#127891; ' + #{schedule.personalizada.label} : '')
+                                             + (${cancelada} ? ' &middot; ' + #{semana.canceladaEtiqueta} + ': ' + ${canceladasEstaSemana.get(s.id)} : '')">Profesor</span>
+                        </div>
+
+                        <p class="agenda-free" th:if="${daySchedules.isEmpty()}" th:text="#{agenda.free}">Libre</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

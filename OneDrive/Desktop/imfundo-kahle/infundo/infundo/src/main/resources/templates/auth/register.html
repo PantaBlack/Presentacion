@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head th:replace="~{layout/fragments :: head('Registro')}"></head>
+<body>
+<div class="auth-wrap">
+    <div class="auth-card fade-in">
+        <div class="auth-logo"><span th:replace="~{layout/fragments :: logomark}"></span></div>
+        <h2 th:text="#{register.title}">Crea tu cuenta</h2>
+        <p class="auth-sub" th:text="#{register.subtitle}">Unete a la comunidad</p>
+
+        <form th:action="@{/auth/register}" th:object="${registerForm}" method="post">
+            <div class="alert alert-danger" th:if="${#fields.hasGlobalErrors()}" th:errors="*{global}">Error</div>
+
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label th:text="#{register.firstName}">Nombre</label>
+                    <input type="text" th:field="*{firstName}" class="form-control"/>
+                    <div class="form-error" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
+                </div>
+                <div class="form-group">
+                    <label th:text="#{register.lastName}">Apellido</label>
+                    <input type="text" th:field="*{lastName}" class="form-control"/>
+                    <div class="form-error" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label th:text="#{register.email}">Correo</label>
+                <input type="email" th:field="*{email}" class="form-control"/>
+                <div class="form-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+            </div>
+
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label th:text="#{register.password}">Contrasena</label>
+                    <input type="password" th:field="*{password}" class="form-control"/>
+                    <small class="text-muted" style="font-size:.76rem" th:text="#{validation.password.weak}">Requisitos</small>
+                    <div class="form-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+                </div>
+                <div class="form-group">
+                    <label th:text="#{register.confirmPassword}">Confirmar</label>
+                    <input type="password" th:field="*{confirmPassword}" class="form-control"/>
+                    <div class="form-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
+                </div>
+            </div>
+
+            <!-- Solo Alumno o Profesor pueden auto-registrarse; Practicante y Admin los crea el equipo. -->
+            <label th:text="#{register.roleQuestion}">Me registro como:</label>
+            <div class="role-select">
+                <label>
+                    <input type="radio" th:field="*{role}" value="STUDENT" checked/>
+                    <span><span class="role-icon">&#127891;</span><span th:text="#{role.student}">Alumno</span></span>
+                </label>
+                <label>
+                    <input type="radio" th:field="*{role}" value="TEACHER"/>
+                    <span><span class="role-icon">&#128105;&#8205;&#127979;</span><span th:text="#{role.teacher}">Profesor</span></span>
+                </label>
+            </div>
+            <div class="form-error" th:if="${#fields.hasErrors('role')}" th:errors="*{role}"></div>
+
+            <p class="text-muted" style="font-size:.8rem;margin:-8px 0 16px" th:text="#{register.gmailNote}">
+                Solo se admiten correos de Gmail para verificar tu identidad.
+            </p>
+
+            <!-- Google reCAPTCHA -->
+            <div class="form-group mt-2">
+                <div class="g-recaptcha" th:attr="data-sitekey=${recaptchaSiteKey}"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" th:text="#{register.submit}">Registrarse</button>
+        </form>
+
+        <p class="auth-footer">
+            <span th:text="#{register.haveaccount}">Ya tienes cuenta?</span>
+            <a th:href="@{/auth/login}" th:text="#{register.login}">Inicia sesion</a>
+        </p>
+        <p class="text-center mt-2"><a th:href="@{/}" th:text="#{common.back}">Volver</a></p>
+    </div>
+</div>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</body>
+</html>
